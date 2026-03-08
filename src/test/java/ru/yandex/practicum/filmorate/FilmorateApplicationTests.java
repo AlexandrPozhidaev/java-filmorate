@@ -19,12 +19,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SpringBootTest
 class FilmorateApplicationTests {
 
-    @Test
-    void contextLoads(){
-
-}
     private final ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
     private final Validator validator = factory.getValidator();
+
+    @Test
+    void contextLoads(){
+}
 
     @Test
     void testValidFilm() {
