@@ -38,7 +38,6 @@ public class UserHandler {
         }
         user.setId(++generateId);
         users.put(user.getId(), user);
-        log.info("Пользователь добавлен");
         return user;
     }
 
@@ -63,12 +62,10 @@ public class UserHandler {
             existingUser.setBirthday(user.getBirthday());
         }
 
-        log.info("Пользователь обновлен: {}", existingUser);
         return existingUser;
     }
 
     public List<User> getAll() {
-        log.info("Вывод списка всех пользователей");
         return new ArrayList<>(users.values());
     }
 }

@@ -27,7 +27,6 @@ public class FilmHandler {
         }
         film.setId(++generateId);
         films.put(film.getId(), film);
-        log.info("Фильм добавлен");
         return film;
     }
 
@@ -43,12 +42,10 @@ public class FilmHandler {
         }
 
         films.put(film.getId(), film);
-        log.info("Фильм обновлен");
         return film;
     }
 
     public List<Film> getAll() {
-        log.info("Вывод списка всех фильмов");
         return new ArrayList<>(films.values());
     }
 }
