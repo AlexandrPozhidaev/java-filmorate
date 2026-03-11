@@ -22,7 +22,7 @@ public class FilmController {
         return handler.create(film);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping
     public Film update(@Valid @RequestBody Film film) {
         log.info("Начато обновление фильма {}", film);
 

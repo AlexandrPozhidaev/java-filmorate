@@ -23,7 +23,7 @@ public class UserController {
         return handler.create(user);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping
     public User update(@Valid @RequestBody User user) {
         log.info("Начато обновление пользователя {}", user);
 
