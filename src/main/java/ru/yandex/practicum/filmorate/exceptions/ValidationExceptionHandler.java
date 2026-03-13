@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.exceptions;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -8,8 +9,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.HashMap;
 import java.util.Map;
 
-import static ru.yandex.practicum.filmorate.controller.FilmController.log;
-
+@Slf4j
 @RestControllerAdvice
 public class ValidationExceptionHandler {
 
@@ -25,7 +25,6 @@ public class ValidationExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleAllExceptions(Exception ex) {
-        log.error("Неожиданное исключение", ex);
         return ResponseEntity.internalServerError()
                 .body("Произошла внутренняя ошибка сервера");
     }
