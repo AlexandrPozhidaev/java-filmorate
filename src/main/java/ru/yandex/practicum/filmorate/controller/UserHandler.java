@@ -1,11 +1,9 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,20 +16,7 @@ public class UserHandler {
 
     private Long generateId = 0L;
 
-    public User create(@Valid User user) {
-
-        if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
-            throw new IllegalArgumentException("Email не может быть пустым");
-        }
-        if (!user.getEmail().contains("@")) {
-            throw new IllegalArgumentException("Email должен содержать символ @");
-        }
-        if (user.getLogin() == null || user.getLogin().trim().isEmpty()) {
-            throw new IllegalArgumentException("Логин не может быть пустым");
-        }
-        if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
-            throw new IllegalArgumentException("Дата рождения не может быть в будущем");
-        }
+    public User create(User user) {
 
         if (user.getName() == null || user.getName().trim().isEmpty()) {
             user.setName(user.getLogin());
@@ -41,7 +26,7 @@ public class UserHandler {
         return user;
     }
 
-    public User update(@Valid User user) {
+    public User update(User user) {
         if (!users.containsKey(user.getId())) {
             throw new RuntimeException("Пользователь с таким ID не найден");
         }
@@ -62,6 +47,13 @@ public class UserHandler {
             existingUser.setBirthday(user.getBirthday());
         }
 
+        if (user.getName() != null && !user.getName().trim().isEmpty()) {
+            existingUser.setName(user.getName());
+        } else {
+            existingUser.setName(existingUser.getLogin());
+        }
+
+        users.put(user.getId(), user);
         return existingUser;
     }
 

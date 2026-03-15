@@ -1,11 +1,9 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Film;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,27 +16,18 @@ public class FilmHandler {
 
     private Long generateId = 0L;
 
-    private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
-    public Film create(@Valid Film film) {
-        if (film.getReleaseDate().isBefore(MIN_RELEASE_DATE)) {
-            throw new RuntimeException(
-                    "Дата релиза не может быть раньше 28 декабря 1895 года");
-        }
+
+    public Film create(Film film) {
         film.setId(++generateId);
         films.put(film.getId(), film);
         return film;
     }
 
-    public Film update(@Valid Film film) {
+    public Film update(Film film) {
 
         if (!films.containsKey(film.getId())) {
             throw new RuntimeException("Фильм с таким ID не найден");
-        }
-
-        if (film.getReleaseDate().isBefore(MIN_RELEASE_DATE)) {
-            throw new RuntimeException(
-                    "Дата релиза не может быть раньше 28 декабря 1895 года");
         }
 
         films.put(film.getId(), film);
