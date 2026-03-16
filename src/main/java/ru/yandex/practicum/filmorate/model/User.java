@@ -13,19 +13,22 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 public class User {
+
+    public interface OnCreate {}
+    public interface OnUpdate {}
+
     private Long id;
 
-    @NotNull(message = "Электронная почта не может отсутствовать")
-    @NotBlank(message = "Электронная почта не может быть пустой")
-    @Email(message = "Некорректный формат электронной почты")
+    @NotBlank(message = "Электронная почта не может быть пустой",groups = OnCreate.class)
+    @Email(message = "Некорректный формат электронной почты",groups = {OnCreate.class, OnUpdate.class})
     private String email;
 
-    @NotBlank(message = "Логин не может быть пустым")
-    @Pattern(regexp = "^\\S*$", message = "Логин не должен содержать пробелы")
+    @NotBlank(message = "Логин не может быть пустым", groups = {OnCreate.class, OnUpdate.class})
+    @Pattern(regexp = "^\\S*$", message = "Логин не должен содержать пробелы", groups = {OnCreate.class, OnUpdate.class})
     private String login;
 
     private String name;
 
-    @Past(message = "Дата рождения не может быть в будущем")
+    @Past(message = "Дата рождения не может быть в будущем", groups = {OnCreate.class, OnUpdate.class})
     private LocalDate birthday;
 }

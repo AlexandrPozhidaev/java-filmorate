@@ -144,7 +144,7 @@ class FilmorateApplicationTests {
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<User>> violations = validator.validate(user, User.OnCreate.class);
         assertEquals(1, violations.size());
         assertEquals("Электронная почта не может быть пустой", violations.iterator().next().getMessage());
     }
@@ -157,7 +157,7 @@ class FilmorateApplicationTests {
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<User>> violations = validator.validate(user, User.OnCreate.class);
         assertEquals(1, violations.size());
         assertEquals("Некорректный формат электронной почты", violations.iterator().next().getMessage());
     }
@@ -170,7 +170,7 @@ class FilmorateApplicationTests {
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<User>> violations = validator.validate(user, User.OnCreate.class);
         assertEquals(1, violations.size());
         assertEquals("Логин не может быть пустым", violations.iterator().next().getMessage());
     }
@@ -183,7 +183,7 @@ class FilmorateApplicationTests {
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<User>> violations = validator.validate(user, User.OnCreate.class);
         assertEquals(1, violations.size());
         assertEquals("Логин не должен содержать пробелы", violations.iterator().next().getMessage());
     }
@@ -196,10 +196,11 @@ class FilmorateApplicationTests {
                 .birthday(LocalDate.now().plusDays(1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
+        Set<ConstraintViolation<User>> violations = validator.validate(user, User.OnCreate.class);
         assertEquals(1, violations.size());
         assertEquals("Дата рождения не может быть в будущем", violations.iterator().next().getMessage());
     }
+
 
     @Test
     void testNullBirthday() {
