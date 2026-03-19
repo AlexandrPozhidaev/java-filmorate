@@ -1,37 +1,34 @@
-package ru.yandex.practicum.filmorate.controller;
+package ru.yandex.practicum.filmorate.storage;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-@Service
-@Slf4j
-public class UserHandler {
+@Component
+public class InMemoryUserStorage implements UserStorage{
 
     private final HashMap<Long, User> users = new HashMap<>();
 
     private Long generateId = 0L;
 
+    @Override
     public User create(User user) {
-
-        if (user.getName() == null || user.getName().trim().isEmpty()) {
-            user.setName(user.getLogin());
-        }
         user.setId(++generateId);
         users.put(user.getId(), user);
         return user;
     }
 
+    @Override
     public User update(User user) {
         if (!users.containsKey(user.getId())) {
             throw new RuntimeException("Пользователь с таким ID не найден");
         }
 
         User existingUser = users.get(user.getId());
+
         if (user.getEmail() != null) {
             existingUser.setEmail(user.getEmail());
         }
@@ -52,12 +49,17 @@ public class UserHandler {
         } else {
             existingUser.setName(existingUser.getLogin());
         }
-
         users.put(user.getId(), user);
-        return existingUser;
+        return user;
     }
 
+    @Override
     public List<User> getAll() {
         return new ArrayList<>(users.values());
+    }
+
+    @Override
+    public User getById(Long id) {
+        return users.get(id);
     }
 }

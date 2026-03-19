@@ -1,31 +1,32 @@
-package ru.yandex.practicum.filmorate.controller;
+package ru.yandex.practicum.filmorate.storage;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-@Service
-@Slf4j
-public class FilmHandler {
+@Component
+public class InMemoryFilmStorage implements FilmStorage{
 
     private final HashMap<Long, Film> films = new HashMap<>();
 
     private Long generateId = 0L;
 
+    public InMemoryFilmStorage() {
+        super();
+    }
 
-
+    @Override
     public Film create(Film film) {
         film.setId(++generateId);
         films.put(film.getId(), film);
         return film;
     }
 
+    @Override
     public Film update(Film film) {
-
         if (!films.containsKey(film.getId())) {
             throw new RuntimeException("Фильм с таким ID не найден");
         }
@@ -34,6 +35,7 @@ public class FilmHandler {
         return film;
     }
 
+    @Override
     public List<Film> getAll() {
         return new ArrayList<>(films.values());
     }

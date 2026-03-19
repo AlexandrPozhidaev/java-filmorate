@@ -15,7 +15,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FilmController {
 
-    private final FilmHandler handler;
+    private final FilmService handler;
     private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
     @PostMapping
