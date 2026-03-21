@@ -1,10 +1,8 @@
 package ru.yandex.practicum.filmorate.model.response;
 
-import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
-import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 
@@ -12,6 +10,7 @@ import java.time.LocalDate;
 @Builder
 @AllArgsConstructor
 public class UserResponse {
+
     Long id;
     String email;
     String login;
