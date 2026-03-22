@@ -26,5 +26,5 @@ public class Film {
     private Long duration;
 
     @Builder.Default
-    private Set<Film> likes = new HashSet<>();
+    private Set<Long> likes = new HashSet<>();
 }

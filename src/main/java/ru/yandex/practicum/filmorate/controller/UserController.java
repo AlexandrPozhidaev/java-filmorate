@@ -54,13 +54,13 @@ public class UserController {
 
     @PutMapping("/{id}/friends/{friendId}")
     public void addFriend(@PathVariable Long id, @PathVariable Long friendId) {
-        service.addFriend(id.toString(), friendId.toString());
+        service.addFriend(id, friendId);
         log.info("Пользователи с ID {} и {} стали друзьями", id, friendId);
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
     public void deleteFriend(@PathVariable Long id, @PathVariable Long friendId) {
-        service.deleteFriend(id.toString(), friendId.toString());
+        service.deleteFriend(id, friendId);
         log.info("Пользователи с ID {} и {} больше не друзья", id, friendId);
     }
 
@@ -74,9 +74,9 @@ public class UserController {
     }
 
     @GetMapping("/{id}/friends/common/{otherId}")
-    public List<UserResponse> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
-        log.info("Запрошен список общих друзей для пользователей с ID {} и {}", id, otherId);
-        List<User> commonFriends = service.getCommonFriends(id.toString(), otherId.toString());
+    public List<UserResponse> getCommonFriends(@PathVariable Long id, @PathVariable Long friendId) {
+        log.info("Запрошен список общих друзей для пользователей с ID {} и {}", id, friendId);
+        List<User> commonFriends = service.getCommonFriends(id, friendId);
         return commonFriends.stream()
                 .map(mapper::toResponse)
                 .collect(toList());

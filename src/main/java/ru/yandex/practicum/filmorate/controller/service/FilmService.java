@@ -7,8 +7,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -16,85 +15,46 @@ import java.util.stream.Collectors;
 public class FilmService {
 
     private final FilmStorage filmStorage;
+    private static final int DEFAULT_POPULAR_COUNT = 10;
 
     public Film create(Film film) {
+        log.info("Создание фильма: {}", film);
         return filmStorage.create(film);
     }
 
     public Film update(Film film) {
+        log.info("Обновление фильма с ID: {}", film.getId());
         return filmStorage.update(film);
     }
 
     public List<Film> getAll() {
+        log.info("Получение всех фильмов");
         return filmStorage.getAll();
     }
 
     public void addLike(Long filmId, Long userId) {
-        Film film = filmStorage.getById(filmId);
-
-        if (film == null) {
-            log.warn("Фильм с ID {} не найден", filmId);
-            throw new IllegalArgumentException("Фильм не найден");
-        }
-
-        Set<Long> likes = film.getLikes();
-
-        if (likes.contains(userId)) {
-            log.info("Пользователь с ID {} уже поставил лайк фильму с ID {}", userId, filmId);
-            return;
-        }
-
-        likes.add(userId);
-        filmStorage.update(film);
-
         log.info("Пользователь с ID {} поставил лайк фильму с ID {}", userId, filmId);
+        boolean success = filmStorage.addLike(filmId, userId);
+        if (!success) {
+            log.warn("Не удалось добавить лайк: фильм с ID {} не найден или лайк уже существует", filmId);
+        }
     }
 
     public void deleteLike(Long filmId, Long userId) {
-        Film film = filmStorage.getById(filmId);
-
-        if (film == null) {
-            log.warn("Фильм с ID {} не найден", filmId);
-            throw new IllegalArgumentException("Фильм не найден");
-        }
-
-        Set<Long> likes = film.getLikes();
-
-        if (!likes.contains(userId)) {
-            log.info("Пользователь с ID {} не ставил лайк фильму с ID {}", userId, filmId);
-            return;
-        }
-
-        likes.remove(userId);
-        filmStorage.update(film);
-
         log.info("Пользователь с ID {} убрал лайк у фильма с ID {}", userId, filmId);
+        boolean success = filmStorage.deleteLike(filmId, userId);
+        if (!success) {
+            log.warn("Не удалось удалить лайк: фильм с ID {} не найден или лайка не было", filmId);
+        }
     }
 
-       public List<Film> get10PopularFilms(int count) {
-        if (count <= 0) {
-            count = 10; // значение по умолчанию
-        }
-
-        List<Film> allFilms = filmStorage.getAll();
-
-        return allFilms.stream()
-                .sorted((f1, f2) -> {
-                    int likesComparison = Integer.compare(
-                            f2.getLikes().size(),
-                            f1.getLikes().size()
-                    );
-                    if (likesComparison != 0) {
-                        return likesComparison;
-                    }
-
-                    return Long.compare(f2.getId(), f1.getId());
-                })
-                .limit(count)
-                .collect(Collectors.toList());
+    public List<Film> getPopularFilms(int count) {
+        log.info("Получение топ-{} популярных фильмов", count);
+        return filmStorage.getPopularFilms(count);
     }
 
     public Optional<Film> getById(Long id) {
+        log.info("Поиск фильма с ID: {}", id);
         return Optional.ofNullable(filmStorage.getById(id));
     }
 }

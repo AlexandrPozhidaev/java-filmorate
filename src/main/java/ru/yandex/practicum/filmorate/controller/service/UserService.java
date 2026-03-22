@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -17,10 +18,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserService {
 
-private UserStorage userStorage;
+    private UserStorage userStorage;
 
     public User create(User user) {
-
         if (user.getName() == null || user.getName().trim().isEmpty()) {
             user.setName(user.getLogin());
         }
@@ -35,53 +35,74 @@ private UserStorage userStorage;
         return userStorage.getAll();
     }
 
-    public void addFriend(String id, String friendId) {
-        User user = userStorage.getById(Long.valueOf(id));
-        User friend = userStorage.getById(Long.valueOf(friendId));
+    public void addFriend(Long userId, Long friendId) {
+        log.info("Пользователь с ID {} добавляет в друзья пользователя с ID {}", userId, friendId);
+
+        User user = userStorage.getById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
+        User friend = userStorage.getById(friendId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + friendId + " не найден"));
+
         user.getFriends().add(friend);
         friend.getFriends().add(user);
-        userStorage.update(user);
-        userStorage.update(friend);
-    }
-
-    public void deleteFriend(String id, String friendId) {
-        User user = userStorage.getById(Long.valueOf(id));
-        User friend = userStorage.getById(Long.valueOf(friendId));
-
-        user.getFriends().remove(Long.valueOf(friendId));
-        friend.getFriends().remove(Long.valueOf(id));
 
         userStorage.update(user);
         userStorage.update(friend);
     }
 
-    public List<User> getCommonFriends(String id1, String id2) {
-        User user1 = userStorage.getById(Long.valueOf(id1));
-        User user2 = userStorage.getById(Long.valueOf(id2));
+    public void deleteFriend(Long userId, Long friendId) {
+        log.info("Пользователь с ID {} удаляет из друзей пользователя с ID {}", userId, friendId);
 
-        Set<Long> friendsOfUser1 = user1.getFriends();
-        Set<Long> friendsOfUser2 = user2.getFriends();
+        User user = userStorage.getById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
+        User friend = userStorage.getById(friendId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + friendId + " не найден"));
 
-        Set<Long> commonFriendsIds = friendsOfUser1.stream()
-                .filter(friendsOfUser2::contains)
+        user.getFriends().removeIf(f -> f.getId().equals(friendId));
+        friend.getFriends().removeIf(f -> f.getId().equals(userId));
+
+        userStorage.update(user);
+        userStorage.update(friend);
+    }
+
+     public List<User> getCommonFriends(Long userId1, Long userId2) {
+        log.info("Поиск общих друзей для пользователей с ID: {} и {}", userId1, userId2);
+
+        User user1 = userStorage.getById(userId1)
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId1 + " не найден"));
+        User user2 = userStorage.getById(userId2)
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId2 + " не найден"));
+
+        Set<Long> friendsOfUser1Ids = user1.getFriends().stream()
+                .map(User::getId)
                 .collect(Collectors.toSet());
 
-        return commonFriendsIds.stream()
-                .map(userStorage::getById)
+        Set<Long> friendsOfUser2Ids = user2.getFriends().stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
+
+        Set<Long> commonFriendIds = friendsOfUser1Ids.stream()
+                .filter(friendsOfUser2Ids::contains)
+                .collect(Collectors.toSet());
+
+        return commonFriendIds.stream()
+                .map(id -> userStorage.getById(id).orElse(null))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
     public Optional<User> getById(Long id) {
-        return Optional.ofNullable(userStorage.getById(id));
+        log.info("Поиск пользователя с ID: {}", id);
+        return userStorage.getById(id);
     }
 
     public List<User> getFriends(Long id) {
-        User user = userStorage.getById(id);
-        if (user == null) {
-            throw new NotFoundException("Пользователь с ID " + id + " не найден");
-        }
+        User user = userStorage.getById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + id + " не найден"));
+
+        log.debug("Загружаем друзей для пользователя с ID: {}", id);
         return user.getFriends().stream()
-                .map(userStorage::getById)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 }
