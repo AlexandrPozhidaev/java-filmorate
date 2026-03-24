@@ -12,7 +12,6 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.model.request.UserRequest;
 import ru.yandex.practicum.filmorate.model.response.UserResponse;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.Collections;
 import java.util.List;
