@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.controller.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
@@ -15,7 +16,6 @@ import java.util.Optional;
 public class FilmService {
 
     private final FilmStorage filmStorage;
-    private static final int DEFAULT_POPULAR_COUNT = 10;
 
     public Film create(Film film) {
         log.info("Создание фильма: {}", film);
@@ -34,13 +34,10 @@ public class FilmService {
 
     public void addLike(Long filmId, Long userId) {
         log.info("Пользователь с ID {} поставил лайк фильму с ID {}", userId, filmId);
-        boolean success = filmStorage.addLike(filmId, userId);
-        if (!success) {
-            log.warn("Не удалось добавить лайк: фильм с ID {} не найден или лайк уже существует", filmId);
-        }
+        filmStorage.addLike(filmId, userId);
     }
 
-    public void deleteLike(Long filmId, Long userId) {
+    public void deleteLike(Long filmId, Long userId) throws BadRequestException {
         log.info("Пользователь с ID {} убрал лайк у фильма с ID {}", userId, filmId);
         boolean success = filmStorage.deleteLike(filmId, userId);
         if (!success) {
@@ -55,6 +52,6 @@ public class FilmService {
 
     public Optional<Film> getById(Long id) {
         log.info("Поиск фильма с ID: {}", id);
-        return Optional.ofNullable(filmStorage.getById(id));
+        return filmStorage.getById(id);
     }
 }

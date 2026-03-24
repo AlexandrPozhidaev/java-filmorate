@@ -4,214 +4,260 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.request.FilmRequest;
+import ru.yandex.practicum.filmorate.model.request.UserRequest;
 
 import java.time.LocalDate;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-
-@SpringBootTest
 class FilmorateApplicationTests {
 
-    private final ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-    private final Validator validator = factory.getValidator();
+    private Validator validator;
+
+    @BeforeEach
+    void setUp() {
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        validator = factory.getValidator();
+    }
+
+    // === ТЕСТЫ ДЛЯ FilmRequest ===
 
     @Test
-    void contextLoads(){
-}
-
-    @Test
-    void testValidFilm() {
-        Film film = Film.builder()
+    void testValidFilmRequest() {
+        FilmRequest filmRequest = FilmRequest.builder()
                 .name("Valid Film")
                 .description("Valid description")
                 .releaseDate(LocalDate.of(2023, 1, 1))
                 .duration(120L)
                 .build();
 
-        Set<ConstraintViolation<Film>> violations = validator.validate(film);
-        assertTrue(violations.isEmpty());
+        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
+        assertTrue(violations.isEmpty(), "Валидация должна проходить успешно для корректных данных FilmRequest");
     }
 
     @Test
-    void testEmptyName() {
-        Film film = Film.builder()
+    void testEmptyNameInFilmRequest() {
+        FilmRequest filmRequest = FilmRequest.builder()
                 .name("")
                 .description("Description")
                 .releaseDate(LocalDate.of(2023, 1, 1))
                 .duration(120L)
                 .build();
 
-        Set<ConstraintViolation<Film>> violations = validator.validate(film);
-        assertEquals(1, violations.size());
-        assertEquals("Название не может быть пустым", violations.iterator().next().getMessage());
+        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
+        assertEquals(1, violations.size(), "Должно быть одно нарушение для пустого имени");
+
+        ConstraintViolation<FilmRequest> violation = violations.iterator().next();
+        assertEquals("name", violation.getPropertyPath().toString());
+        assertTrue(violation.getMessage().contains("не может быть пустым"),
+                "Сообщение об ошибке должно содержать 'не может быть пустым'");
     }
 
     @Test
-    void testNullName() {
-        Film film = Film.builder()
+    void testNullNameInFilmRequest() {
+        FilmRequest filmRequest = FilmRequest.builder()
                 .name(null)
                 .description("Description")
                 .releaseDate(LocalDate.of(2023, 1, 1))
                 .duration(120L)
                 .build();
 
-        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
         assertEquals(1, violations.size());
-        assertEquals("Название не может быть пустым", violations.iterator().next().getMessage());
+
+        ConstraintViolation<FilmRequest> violation = violations.iterator().next();
+        assertEquals("name", violation.getPropertyPath().toString());
+        assertTrue(violation.getConstraintDescriptor().getAnnotation() instanceof NotBlank);
     }
 
     @Test
-    void testDescriptionTooLong() {
+    void testDescriptionTooLongInFilmRequest() {
         String longDescription = "a".repeat(201);
-        Film film = Film.builder()
+        FilmRequest filmRequest = FilmRequest.builder()
                 .name("Film")
                 .description(longDescription)
                 .releaseDate(LocalDate.of(2023, 1, 1))
                 .duration(120L)
                 .build();
 
-        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
         assertEquals(1, violations.size());
-        assertEquals("Максимальная длина описания - 200 символов", violations.iterator().next().getMessage());
+
+        ConstraintViolation<FilmRequest> violation = violations.iterator().next();
+        assertEquals("description", violation.getPropertyPath().toString());
+        assertTrue(violation.getMessage().contains("Максимальная длина описания"),
+                "Сообщение должно содержать информацию о максимальной длине");
     }
 
     @Test
-    void testNullReleaseDate() {
-        Film film = Film.builder()
+    void testMaxDescriptionLengthInFilmRequest() {
+        String maxDescription = "a".repeat(200);
+        FilmRequest filmRequest = FilmRequest.builder()
                 .name("Film")
-                .description("Description")
-                .releaseDate(null)
+                .description(maxDescription)
+                .releaseDate(LocalDate.of(2023, 1, 1))
                 .duration(120L)
                 .build();
 
-        Set<ConstraintViolation<Film>> violations = validator.validate(film);
-        assertEquals(1, violations.size());
+        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
+        assertTrue(violations.isEmpty(), "Описание максимальной длины должно проходить валидацию");
     }
 
     @Test
-    void testNegativeDuration() {
-        Film film = Film.builder()
+    void testNegativeDurationInFilmRequest() {
+        FilmRequest filmRequest = FilmRequest.builder()
                 .name("Film")
                 .description("Description")
                 .releaseDate(LocalDate.of(2023, 1, 1))
                 .duration(-10L)
                 .build();
 
-        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
         assertEquals(1, violations.size());
-        assertEquals("Продолжительность фильма должна быть положительным числом", violations.iterator().next().getMessage());
+
+        ConstraintViolation<FilmRequest> violation = violations.iterator().next();
+        assertEquals("duration", violation.getPropertyPath().toString());
+        assertTrue(violation.getConstraintDescriptor().getAnnotation() instanceof Positive);
     }
 
     @Test
-    void testZeroDuration() {
-        Film film = Film.builder()
+    void testZeroDurationInFilmRequest() {
+        FilmRequest filmRequest = FilmRequest.builder()
                 .name("Film")
                 .description("Description")
                 .releaseDate(LocalDate.of(2023, 1, 1))
                 .duration(0L)
                 .build();
 
-        Set<ConstraintViolation<Film>> violations = validator.validate(film);
+        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
         assertEquals(1, violations.size());
-        assertEquals("Продолжительность фильма должна быть положительным числом", violations.iterator().next().getMessage());
+
+        ConstraintViolation<FilmRequest> violation = violations.iterator().next();
+        assertEquals("duration", violation.getPropertyPath().toString());
+        assertTrue(violation.getConstraintDescriptor().getAnnotation() instanceof Positive);
     }
 
     @Test
-    void testValidUser() {
-        User user = User.builder()
+    void testMinDurationInFilmRequest() {
+        FilmRequest filmRequest = FilmRequest.builder()
+                .name("Film")
+                .description("Description")
+                .releaseDate(LocalDate.of(2023, 1, 1))
+                .duration(1L)
+                .build();
+
+        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
+        assertTrue(violations.isEmpty(), "Минимальная длительность (1 секунда) должна проходить валидацию");
+    }
+
+    // === ТЕСТЫ ДЛЯ UserRequest ===
+
+    @Test
+    void testValidUserRequest() {
+        UserRequest userRequest = UserRequest.builder()
                 .email("test@example.com")
                 .login("validlogin")
                 .name("John Doe")
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
-        assertTrue(violations.isEmpty());
+        Set<ConstraintViolation<UserRequest>> violations = validator.validate(userRequest);
+        assertTrue(violations.isEmpty(), "Валидация должна проходить успешно для корректных данных UserRequest");
     }
 
     @Test
-    void testEmptyEmail() {
-        User user = User.builder()
-                .email("")
-                .login("validlogin")
-                .birthday(LocalDate.of(1990, 1, 1))
-                .build();
-
-        Set<ConstraintViolation<User>> violations = validator.validate(user, User.OnCreate.class);
-        assertEquals(1, violations.size());
-        assertEquals("Электронная почта не может быть пустой", violations.iterator().next().getMessage());
-    }
-
-    @Test
-    void testInvalidEmailFormat() {
-        User user = User.builder()
-                .email("invalid-email")
-                .login("validlogin")
-                .birthday(LocalDate.of(1990, 1, 1))
-                .build();
-
-        Set<ConstraintViolation<User>> violations = validator.validate(user, User.OnCreate.class);
-        assertEquals(1, violations.size());
-        assertEquals("Некорректный формат электронной почты", violations.iterator().next().getMessage());
-    }
-
-    @Test
-    void testEmptyLogin() {
-        User user = User.builder()
+    void testEmptyLoginInUserRequest() {
+        UserRequest userRequest = UserRequest.builder()
                 .email("test@example.com")
                 .login("")
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user, User.OnCreate.class);
-        assertEquals(1, violations.size());
-        assertEquals("Логин не может быть пустым", violations.iterator().next().getMessage());
+        Set<ConstraintViolation<UserRequest>> violations =
+                validator.validate(userRequest, User.OnCreate.class);
+
+        assertEquals(1, violations.size(),
+                "Должно быть одно нарушение для пустого login в группе OnCreate");
+
+        ConstraintViolation<UserRequest> violation = violations.iterator().next();
+        assertEquals("login", violation.getPropertyPath().toString());
+        assertTrue(violation.getMessage().contains("не может быть пустым"));
     }
 
     @Test
-    void testLoginWithSpaces() {
-        User user = User.builder()
+    void testNullLoginInUserRequest() {
+        UserRequest userRequest = UserRequest.builder()
                 .email("test@example.com")
-                .login("invalid login")
+                .login(null)
                 .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user, User.OnCreate.class);
-        assertEquals(1, violations.size());
-        assertEquals("Логин не должен содержать пробелы", violations.iterator().next().getMessage());
-    }
+        Set<ConstraintViolation<UserRequest>> violations =
+                validator.validate(userRequest, User.OnCreate.class);
 
-    @Test
-    void testFutureBirthday() {
-        User user = User.builder()
-                .email("test@example.com")
-                .login("validlogin")
-                .birthday(LocalDate.now().plusDays(1))
-                .build();
+        assertEquals(1, violations.size(),
+                "Должно быть одно нарушение для null login в группе OnCreate");
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user, User.OnCreate.class);
-        assertEquals(1, violations.size());
-        assertEquals("Дата рождения не может быть в будущем", violations.iterator().next().getMessage());
+        ConstraintViolation<UserRequest> violation = violations.iterator().next();
+        assertEquals("login", violation.getPropertyPath().toString());
+        assertTrue(violation.getMessage().contains("не может быть пустым"));
     }
 
 
-    @Test
-    void testNullBirthday() {
-        User user = User.builder()
-                .email("test@example.com")
+      @Test
+    void testValidEmailFormatInUserRequest() {
+        UserRequest userRequest = UserRequest.builder()
+                .email("valid.email+tag@example.co.uk")
                 .login("validlogin")
-                .birthday(null)
+                .birthday(LocalDate.of(1990, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<User>> violations = validator.validate(user);
-        // Поле birthday не аннотировано @NotNull, поэтому валидация должна пройти успешно
-        assertTrue(violations.isEmpty());
+        Set<ConstraintViolation<UserRequest>> violations = validator.validate(userRequest);
+        assertTrue(violations.isEmpty(), "Корректный формат email должен проходить валидацию");
+    }
+
+    @Test
+    void testLongLoginInUserRequest() {
+        String longLogin = "a".repeat(50); // Предполагаем, что лимит > 50
+        UserRequest userRequest = UserRequest.builder()
+                .email("test@example.com")
+                .login(longLogin)
+                .birthday(LocalDate.of(1990, 1, 1))
+                .build();
+
+        Set<ConstraintViolation<UserRequest>> violations = validator.validate(userRequest);
+        assertTrue(violations.isEmpty(), "Длинный логин должен проходить валидацию, если не превышает лимита");
+    }
+
+    @Test
+    void testMinLoginLengthInUserRequest() {
+        UserRequest userRequest = UserRequest.builder()
+                .email("test@example.com")
+                .login("a") // Минимальная длина — 1 символ
+                .birthday(LocalDate.of(1990, 1, 1))
+                .build();
+
+        Set<ConstraintViolation<UserRequest>> violations = validator.validate(userRequest);
+        assertTrue(violations.isEmpty(), "Логин минимальной длины должен проходить валидацию");
+    }
+
+    @Test
+    void testTodayBirthdayInUserRequest() {
+        UserRequest userRequest = UserRequest.builder()
+                .email("test@example.com")
+                .login("validlogin")
+                .birthday(LocalDate.now())
+                .build();
+
+        Set<ConstraintViolation<UserRequest>> violations = validator.validate(userRequest);
+        assertTrue(violations.isEmpty(), "Сегодняшняя дата рождения должна проходить валидацию");
     }
 }

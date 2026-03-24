@@ -18,5 +18,5 @@ public class UserResponse {
     String login;
     String name;
     LocalDate birthday;
-    Set<User> friends;
+    Set<Long> friends;
 }

@@ -2,7 +2,9 @@ package ru.yandex.practicum.filmorate.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import ru.yandex.practicum.filmorate.model.ErrorResponse;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.controller.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.controller.service.UserService;
@@ -10,8 +12,11 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.model.request.UserRequest;
 import ru.yandex.practicum.filmorate.model.response.UserResponse;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -23,6 +28,7 @@ public class UserController {
 
     private final UserService service;
     private final UserMapper mapper;
+    private UserService userService;
 
     @PostMapping
     public UserResponse create(@Validated(User.OnCreate.class) @RequestBody UserRequest request) {
@@ -53,15 +59,27 @@ public class UserController {
     }
 
     @PutMapping("/{id}/friends/{friendId}")
-    public void addFriend(@PathVariable Long id, @PathVariable Long friendId) {
+    public ResponseEntity<Void> addFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        log.info("Запрос на добавление в друзья: пользователь {} добавляет пользователя {}", id, friendId);
         service.addFriend(id, friendId);
-        log.info("Пользователи с ID {} и {} стали друзьями", id, friendId);
+        return ResponseEntity.noContent().build(); // 204 No Content
     }
 
     @DeleteMapping("/{id}/friends/{friendId}")
-    public void deleteFriend(@PathVariable Long id, @PathVariable Long friendId) {
-        service.deleteFriend(id, friendId);
-        log.info("Пользователи с ID {} и {} больше не друзья", id, friendId);
+    public ResponseEntity<ErrorResponse> deleteFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        try {
+            service.deleteFriend(id, friendId);
+            log.info("Пользователи с ID {} и {} больше не друзья", id, friendId);
+            return ResponseEntity.noContent().build(); // 204 No Content
+        } catch (NotFoundException e) {
+            log.warn("Ошибка при удалении друга: {}", e.getMessage());
+            ErrorResponse error = new ErrorResponse(
+                    e.getMessage(),
+                    404,
+                    Collections.singletonList("Ресурс не найден")
+            );
+            return ResponseEntity.status(404).body(error);
+        }
     }
 
     @GetMapping("/{id}/friends")
@@ -70,15 +88,15 @@ public class UserController {
         List<User> friends = service.getFriends(id);
         return friends.stream()
                 .map(mapper::toResponse)
-                .collect(toList());
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}/friends/common/{otherId}")
-    public List<UserResponse> getCommonFriends(@PathVariable Long id, @PathVariable Long friendId) {
-        log.info("Запрошен список общих друзей для пользователей с ID {} и {}", id, friendId);
-        List<User> commonFriends = service.getCommonFriends(id, friendId);
+    public List<UserResponse> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
+        log.info("Запрошен список общих друзей для пользователей с ID {} и {}", id, otherId);
+        List<User> commonFriends = service.getCommonFriends(id, otherId);
         return commonFriends.stream()
                 .map(mapper::toResponse)
-                .collect(toList());
+                .collect(Collectors.toList());
     }
 }

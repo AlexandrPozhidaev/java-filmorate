@@ -1,12 +1,11 @@
 package ru.yandex.practicum.filmorate.model.request;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
+import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -17,6 +16,7 @@ import java.util.Set;
 @AllArgsConstructor
 public class FilmRequest {
 
+    @NotNull(groups = User.OnUpdate.class)
     Long id;
 
     @NotBlank(message = "Название не может быть пустым")
@@ -25,11 +25,13 @@ public class FilmRequest {
     @Size(min = 1, max = 200, message = "Максимальная длина описания - 200 символов")
     String description;
 
-    @NotNull
+    @NotNull(message = "Дата выпуска обязательна")
+    @PastOrPresent(message = "Дата выпуска не может быть в будущем")
     LocalDate releaseDate;
 
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     Long duration;
 
+    @Builder.Default
     private Set<Long> likes = new HashSet<>();
 }

@@ -8,7 +8,6 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -18,7 +17,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserService {
 
-    private UserStorage userStorage;
+    private final UserStorage userStorage;
 
     public User create(User user) {
         if (user.getName() == null || user.getName().trim().isEmpty()) {
@@ -28,6 +27,9 @@ public class UserService {
     }
 
     public User update(User user) {
+        if (!userStorage.getById(user.getId()).isPresent()) {
+            throw new NotFoundException("Пользователь с ID " + user.getId() + " не найден");
+        }
         return userStorage.update(user);
     }
 
@@ -37,58 +39,34 @@ public class UserService {
 
     public void addFriend(Long userId, Long friendId) {
         log.info("Пользователь с ID {} добавляет в друзья пользователя с ID {}", userId, friendId);
-
-        User user = userStorage.getById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
-        User friend = userStorage.getById(friendId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + friendId + " не найден"));
-
-        user.getFriends().add(friend);
-        friend.getFriends().add(user);
-
-        userStorage.update(user);
-        userStorage.update(friend);
+        if (userId == null || friendId == null) {
+            throw new IllegalArgumentException("ID пользователей не могут быть null");
+        }
+        if (userId.equals(friendId)) {
+            throw new IllegalArgumentException("Пользователь не может добавить себя в друзья");
+        }
+        userStorage.addFriend(userId, friendId);
     }
 
     public void deleteFriend(Long userId, Long friendId) {
         log.info("Пользователь с ID {} удаляет из друзей пользователя с ID {}", userId, friendId);
 
-        User user = userStorage.getById(userId)
+        // Валидация
+        if (userId == null || friendId == null) {
+            throw new IllegalArgumentException("ID пользователей не могут быть null");
+        }
+        userStorage.getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
-        User friend = userStorage.getById(friendId)
+        userStorage.getById(friendId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с ID " + friendId + " не найден"));
 
-        user.getFriends().removeIf(f -> f.getId().equals(friendId));
-        friend.getFriends().removeIf(f -> f.getId().equals(userId));
-
-        userStorage.update(user);
-        userStorage.update(friend);
+        userStorage.deleteFriend(userId, friendId);
+        log.info("Друг успешно удалён: {} → {}", userId, friendId);
     }
 
-     public List<User> getCommonFriends(Long userId1, Long userId2) {
+    public List<User> getCommonFriends(Long userId1, Long userId2) {
         log.info("Поиск общих друзей для пользователей с ID: {} и {}", userId1, userId2);
-
-        User user1 = userStorage.getById(userId1)
-                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId1 + " не найден"));
-        User user2 = userStorage.getById(userId2)
-                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId2 + " не найден"));
-
-        Set<Long> friendsOfUser1Ids = user1.getFriends().stream()
-                .map(User::getId)
-                .collect(Collectors.toSet());
-
-        Set<Long> friendsOfUser2Ids = user2.getFriends().stream()
-                .map(User::getId)
-                .collect(Collectors.toSet());
-
-        Set<Long> commonFriendIds = friendsOfUser1Ids.stream()
-                .filter(friendsOfUser2Ids::contains)
-                .collect(Collectors.toSet());
-
-        return commonFriendIds.stream()
-                .map(id -> userStorage.getById(id).orElse(null))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        return userStorage.getCommonFriends(userId1, userId2);
     }
 
     public Optional<User> getById(Long id) {
@@ -97,12 +75,7 @@ public class UserService {
     }
 
     public List<User> getFriends(Long id) {
-        User user = userStorage.getById(id)
-                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + id + " не найден"));
-
         log.debug("Загружаем друзей для пользователя с ID: {}", id);
-        return user.getFriends().stream()
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        return userStorage.getFriends(id);
     }
 }

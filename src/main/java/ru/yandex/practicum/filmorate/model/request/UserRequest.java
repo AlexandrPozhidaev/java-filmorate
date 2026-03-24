@@ -3,12 +3,17 @@ package ru.yandex.practicum.filmorate.model.request;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 import lombok.Value;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 @Value
+@Data
 @Builder
 @AllArgsConstructor
 public class UserRequest {
@@ -28,4 +33,6 @@ public class UserRequest {
     @NotNull
     @Past(message = "Дата рождения не может быть в будущем", groups = {User.OnCreate.class, User.OnUpdate.class})
     LocalDate birthday;
+
+    private Set<Long> friends = new HashSet<>();
 }

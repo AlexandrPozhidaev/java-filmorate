@@ -3,13 +3,18 @@ package ru.yandex.practicum.filmorate.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.BadRequestException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.controller.service.FilmService;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -23,14 +28,23 @@ public class FilmController {
     @PostMapping
     public Film create(@Valid @RequestBody Film film) {
         log.info("Начато создание фильма {}", film);
-        validateReleaseDate(film.getReleaseDate());
-        return service.create(film);
+        try {
+            validateReleaseDate(film.getReleaseDate());
+            return service.create(film);
+        } catch (BadRequestException e) {
+            log.warn("Ошибка валидации даты релиза: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     @PutMapping
     public Film update(@Valid @RequestBody Film film) {
         log.info("Начато обновление фильма {}", film);
-        validateReleaseDate(film.getReleaseDate());
+        try {
+            validateReleaseDate(film.getReleaseDate());
+        } catch (BadRequestException e) {
+            throw new RuntimeException(e);
+        }
         return service.update(film);
     }
 
@@ -53,8 +67,9 @@ public class FilmController {
         service.addLike(id, userId);
     }
 
+
     @DeleteMapping("/{id}/like/{userId}")
-    public void deleteLike(@PathVariable Long id, @PathVariable Long userId) {
+    public void deleteLike(@PathVariable Long id, @PathVariable Long userId) throws BadRequestException {
         log.info("Пользователь с ID {} убрал лайк у фильма с ID {}", userId, id);
         service.deleteLike(id, userId);
     }
@@ -68,10 +83,10 @@ public class FilmController {
         return service.getPopularFilms(count);
     }
 
-    private void validateReleaseDate(LocalDate releaseDate) {
+    private void validateReleaseDate(LocalDate releaseDate) throws BadRequestException {
         if (releaseDate.isBefore(MIN_RELEASE_DATE)) {
-            throw new IllegalArgumentException(
-                    "Дата релиза не может быть раньше 28 декабря 1895 года");
+            throw new BadRequestException(
+                    "Дата релиза не может быть раньше 28/12/1895 года");
         }
     }
 }
