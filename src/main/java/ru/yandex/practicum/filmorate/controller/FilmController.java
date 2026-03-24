@@ -4,12 +4,12 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
-import org.springframework.http.HttpStatus;
+import ru.yandex.practicum.filmorate.controller.mapper.FilmMapper;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.controller.service.FilmService;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import ru.yandex.practicum.filmorate.model.request.FilmRequest;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -21,28 +21,19 @@ import java.util.List;
 public class FilmController {
 
     private final FilmService service;
+    private final FilmMapper filmMapper;
     private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
 
     @PostMapping
-    public Film create(@Valid @RequestBody Film film) {
-        log.info("Начато создание фильма {}", film);
-        try {
-            validateReleaseDate(film.getReleaseDate());
-            return service.create(film);
-        } catch (BadRequestException e) {
-            log.warn("Ошибка валидации даты релиза: {}", e.getMessage());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
-        }
+    public Film create(@Valid @RequestBody FilmRequest filmRequest) {
+        log.info("Начато создание фильма {}", filmRequest);
+        Film film = filmMapper.toFilm(filmRequest);
+        return service.create(film);
     }
 
     @PutMapping
     public Film update(@Valid @RequestBody Film film) {
         log.info("Начато обновление фильма {}", film);
-        try {
-            validateReleaseDate(film.getReleaseDate());
-        } catch (BadRequestException e) {
-            throw new RuntimeException(e);
-        }
         return service.update(film);
     }
 
@@ -79,12 +70,5 @@ public class FilmController {
             throw new IllegalArgumentException("Количество фильмов должно быть положительным");
         }
         return service.getPopularFilms(count);
-    }
-
-    private void validateReleaseDate(LocalDate releaseDate) throws BadRequestException {
-        if (releaseDate.isBefore(MIN_RELEASE_DATE)) {
-            throw new BadRequestException(
-                    "Дата релиза не может быть раньше 28/12/1895 года");
-        }
     }
 }

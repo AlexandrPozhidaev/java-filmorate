@@ -25,7 +25,7 @@ public class FilmRequest {
     String description;
 
     @NotNull(message = "Дата выпуска обязательна")
-    @PastOrPresent(message = "Дата выпуска не может быть в будущем")
+    @ValidReleaseDate(message = "Дата релиза не может быть раньше 28/12/1895 года")
     LocalDate releaseDate;
 
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
