@@ -12,5 +12,7 @@ public interface FilmMapper {
 
     @Mapping(target = "likes", ignore = true)
     Film toFilm(FilmRequest filmRequest);
+
     FilmResponse toResponse(Film film);
+
 }

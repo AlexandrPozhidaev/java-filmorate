@@ -10,5 +10,6 @@ import ru.yandex.practicum.filmorate.model.response.UserResponse;
 public interface UserMapper {
 
     User toUser(UserRequest userRequest);
+
     UserResponse toResponse(User user);
 }
