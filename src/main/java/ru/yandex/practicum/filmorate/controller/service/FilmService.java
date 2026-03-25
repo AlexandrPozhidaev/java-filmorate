@@ -58,11 +58,17 @@ public class FilmService {
 
     public void deleteLike(Long filmId, Long userId) throws BadRequestException {
         log.info("Пользователь с ID {} убрал лайк у фильма с ID {}", userId, filmId);
-        boolean success = filmStorage.deleteLike(filmId, userId);
-        if (!success) {
-            log.warn("Не удалось удалить лайк: фильм с ID {} не найден или лайка не было", filmId);
+        Film film = filmStorage.getById(filmId)
+                .orElseThrow(() -> new NotFoundException("Фильм с ID " + filmId + " не найден"));
+
+        if (!film.getLikes().contains(userId)) {
+            throw new NotFoundException(
+                    "Пользователь с ID " + userId + " не ставил лайк этому фильму"
+            );
         }
-    }
+
+        film.getLikes().remove(userId);
+        }
 
     public List<FilmResponse> getPopularFilms(int count) {
         log.info("Получение топ-{} популярных фильмов", count);
