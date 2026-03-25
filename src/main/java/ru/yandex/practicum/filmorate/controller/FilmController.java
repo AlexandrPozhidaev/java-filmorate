@@ -3,10 +3,12 @@ package ru.yandex.practicum.filmorate.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.coyote.BadRequestException;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.controller.service.FilmService;
+import ru.yandex.practicum.filmorate.model.request.FilmRequest;
+import ru.yandex.practicum.filmorate.model.response.FilmResponse;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Slf4j
@@ -15,32 +17,50 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FilmController {
 
-    private final FilmHandler handler;
-    private static final LocalDate MIN_RELEASE_DATE = LocalDate.of(1895, 12, 28);
+    private final FilmService service;
 
     @PostMapping
-    public Film create(@Valid @RequestBody Film film) {
-        log.info("Начато создание фильма {}", film);
-        if (film.getReleaseDate().isBefore(MIN_RELEASE_DATE)) {
-            throw new RuntimeException(
-                    "Дата релиза не может быть раньше 28 декабря 1895 года");
-        }
-        return handler.create(film);
+    public FilmResponse create(@Valid @RequestBody FilmRequest filmRequest) {
+        log.info("Начато создание фильма {}", filmRequest);
+        return service.create(filmRequest);
     }
 
     @PutMapping
-    public Film update(@Valid @RequestBody Film film) {
-        log.info("Начато обновление фильма {}", film);
-        if (film.getReleaseDate().isBefore(MIN_RELEASE_DATE)) {
-            throw new RuntimeException(
-                    "Дата релиза не может быть раньше 28 декабря 1895 года");
-        }
-        return handler.update(film);
+    public FilmResponse update(@Valid @RequestBody FilmRequest filmRequest) {
+        log.info("Начато обновление фильма {}", filmRequest);
+        return service.update(filmRequest);
     }
 
     @GetMapping
-    public List<Film> getAll() {
+    public List<FilmResponse> getAll() {
         log.info("Запрошен вывод всех фильмов");
-        return handler.getAll();
+        return service.getAll();
+    }
+
+    @GetMapping("/{id}")
+    public FilmResponse getById(@PathVariable Long id) {
+        log.info("Запрошены данные фильма с ID {}", id);
+        return service.getById(id);
+    }
+
+    @PutMapping("/{id}/like/{userId}")
+    public void addLike(@PathVariable Long id, @PathVariable Long userId) {
+        log.info("Пользователь с ID {} поставил лайк фильму с ID {}", userId, id);
+        service.addLike(id, userId);
+    }
+
+    @DeleteMapping("/{id}/like/{userId}")
+    public void deleteLike(@PathVariable Long id, @PathVariable Long userId) throws BadRequestException {
+        log.info("Пользователь с ID {} убрал лайк у фильма с ID {}", userId, id);
+        service.deleteLike(id, userId);
+    }
+
+    @GetMapping("/popular")
+    public List<FilmResponse> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
+        log.info("Запрошен список из {} популярных фильмов", count);
+        if (count <= 0) {
+            throw new IllegalArgumentException("Количество фильмов должно быть положительным");
+        }
+        return service.getPopularFilms(count);
     }
 }
