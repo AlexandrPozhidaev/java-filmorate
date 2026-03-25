@@ -3,12 +3,15 @@ package ru.yandex.practicum.filmorate.controller.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.controller.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.model.request.UserRequest;
+import ru.yandex.practicum.filmorate.model.response.UserResponse;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -16,23 +19,40 @@ import java.util.Optional;
 public class UserService {
 
     private final UserStorage userStorage;
+    private final UserMapper mapper;
 
-    public User create(User user) {
+    public UserResponse create(UserRequest request) {
+        User user = mapper.toUser(request);
         if (user.getName() == null || user.getName().trim().isEmpty()) {
             user.setName(user.getLogin());
         }
-        return userStorage.create(user);
+        User createdUser = userStorage.create(user);
+        return mapper.toResponse(createdUser);
     }
 
-    public User update(User user) {
-        if (!userStorage.getById(user.getId()).isPresent()) {
-            throw new NotFoundException("Пользователь с ID " + user.getId() + " не найден");
-        }
-        return userStorage.update(user);
+    public UserResponse update(UserRequest request) {
+        log.info("Начато обновление пользователя {}", request);
+
+        User existingUser = userStorage.getById(request.getId())
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + request.getId() + " не найден"));
+
+        applyUserUpdate(existingUser, request);
+
+        User updatedUser = userStorage.update(existingUser);
+        log.info("Пользователь с ID {} успешно обновлён", updatedUser.getId());
+        return mapper.toResponse(updatedUser);
     }
 
-    public List<User> getAll() {
-        return userStorage.getAll();
+    public List<UserResponse> getAllUsers() {
+        return userStorage.getAll().stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    public UserResponse getUserById(Long id) {
+        User user = userStorage.getById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + id + " не найден"));
+        return mapper.toResponse(user);
     }
 
     public void addFriend(Long userId, Long friendId) {
@@ -48,8 +68,6 @@ public class UserService {
 
     public void deleteFriend(Long userId, Long friendId) {
         log.info("Пользователь с ID {} удаляет из друзей пользователя с ID {}", userId, friendId);
-
-        // Валидация
         if (userId == null || friendId == null) {
             throw new IllegalArgumentException("ID пользователей не могут быть null");
         }
@@ -57,23 +75,40 @@ public class UserService {
                 .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
         userStorage.getById(friendId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с ID " + friendId + " не найден"));
-
         userStorage.deleteFriend(userId, friendId);
         log.info("Друг успешно удалён: {} → {}", userId, friendId);
     }
 
-    public List<User> getCommonFriends(Long userId1, Long userId2) {
+    public List<UserResponse> getCommonFriends(Long userId1, Long userId2) {
         log.info("Поиск общих друзей для пользователей с ID: {} и {}", userId1, userId2);
-        return userStorage.getCommonFriends(userId1, userId2);
+        List<User> commonFriends = userStorage.getCommonFriends(userId1, userId2);
+        return commonFriends.stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
     }
 
-    public Optional<User> getById(Long id) {
-        log.info("Поиск пользователя с ID: {}", id);
-        return userStorage.getById(id);
-    }
-
-    public List<User> getFriends(Long id) {
+    public List<UserResponse> getFriends(Long id) {
         log.debug("Загружаем друзей для пользователя с ID: {}", id);
-        return userStorage.getFriends(id);
+        List<User> friends = userStorage.getFriends(id);
+        return friends.stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    private void applyUserUpdate(User existingUser, UserRequest request) {
+        if (request.getEmail() != null) {
+            existingUser.setEmail(request.getEmail());
+        }
+        if (request.getLogin() != null) {
+            existingUser.setLogin(request.getLogin());
+        }
+        if (request.getName() != null && !request.getName().trim().isEmpty()) {
+            existingUser.setName(request.getName());
+        } else {
+            existingUser.setName(existingUser.getLogin());
+        }
+        if (request.getBirthday() != null) {
+            existingUser.setBirthday(request.getBirthday());
+        }
     }
 }

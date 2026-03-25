@@ -16,20 +16,20 @@ import java.util.Set;
 public class FilmRequest {
 
     @NotNull(groups = User.OnUpdate.class)
-    Long id;
+    private Long id;
 
     @NotBlank(message = "Название не может быть пустым")
-    String name;
+    private String name;
 
     @Size(min = 1, max = 200, message = "Максимальная длина описания - 200 символов")
-    String description;
+    private String description;
 
     @NotNull(message = "Дата выпуска обязательна")
     @ValidReleaseDate(message = "Дата релиза не может быть раньше 28/12/1895 года")
-    LocalDate releaseDate;
+    private LocalDate releaseDate;
 
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
-    Long duration;
+    private Long duration;
 
     @Builder.Default
     private Set<Long> likes = new HashSet<>();

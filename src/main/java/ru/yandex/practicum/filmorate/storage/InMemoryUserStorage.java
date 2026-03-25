@@ -24,26 +24,8 @@ public class InMemoryUserStorage implements UserStorage {
         if (!users.containsKey(user.getId())) {
             throw new RuntimeException("Пользователь с таким ID не найден");
         }
-
-        User existingUser = users.get(user.getId());
-
-        if (user.getEmail() != null) {
-            existingUser.setEmail(user.getEmail());
-        }
-        if (user.getLogin() != null) {
-            existingUser.setLogin(user.getLogin());
-        }
-        if (user.getName() != null && !user.getName().trim().isEmpty()) {
-            existingUser.setName(user.getName());
-        } else {
-            existingUser.setName(existingUser.getLogin());
-        }
-        if (user.getBirthday() != null) {
-            existingUser.setBirthday(user.getBirthday());
-        }
-
-        users.put(existingUser.getId(), existingUser);
-        return existingUser;
+        users.put(user.getId(), user);
+        return user;
     }
 
     @Override

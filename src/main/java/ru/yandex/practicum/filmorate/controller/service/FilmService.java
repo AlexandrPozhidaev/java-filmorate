@@ -4,11 +4,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.controller.mapper.FilmMapper;
+import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.request.FilmRequest;
+import ru.yandex.practicum.filmorate.model.response.FilmResponse;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -16,20 +20,27 @@ import java.util.Optional;
 public class FilmService {
 
     private final FilmStorage filmStorage;
+    private final FilmMapper mapper;
 
-    public Film create(Film film) {
+    public FilmResponse create(FilmRequest filmRequest) {
+        Film film = mapper.toFilm(filmRequest);
         log.info("Создание фильма: {}", film);
-        return filmStorage.create(film);
+        Film createdFilm = filmStorage.create(film);
+        return mapper.toResponse(createdFilm);
     }
 
-    public Film update(Film film) {
+    public FilmResponse update(FilmRequest filmRequest) {
+        Film film = mapper.toFilm(filmRequest);
         log.info("Обновление фильма с ID: {}", film.getId());
-        return filmStorage.update(film);
+        Film updatedFilm = filmStorage.update(film);
+        return mapper.toResponse(updatedFilm);
     }
 
-    public List<Film> getAll() {
+    public List<FilmResponse> getAll() {
         log.info("Получение всех фильмов");
-        return filmStorage.getAll();
+        return filmStorage.getAll().stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     public void addLike(Long filmId, Long userId) {
@@ -45,13 +56,17 @@ public class FilmService {
         }
     }
 
-    public List<Film> getPopularFilms(int count) {
+    public List<FilmResponse> getPopularFilms(int count) {
         log.info("Получение топ-{} популярных фильмов", count);
-        return filmStorage.getPopularFilms(count);
+        return filmStorage.getPopularFilms(count).stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
     }
 
-    public Optional<Film> getById(Long id) {
+    public FilmResponse getById(Long id) {
         log.info("Поиск фильма с ID: {}", id);
-        return filmStorage.getById(id);
+        Film film = filmStorage.getById(id)
+                .orElseThrow(() -> new NotFoundException("Фильм с ID " + id + " не найден"));
+        return mapper.toResponse(film);
     }
 }

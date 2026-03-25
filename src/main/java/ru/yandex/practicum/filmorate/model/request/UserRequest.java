@@ -17,21 +17,21 @@ import java.util.Set;
 @AllArgsConstructor
 public class UserRequest {
 
-    Long id;
+    private Long id;
 
     @NotBlank(message = "Электронная почта не может быть пустой", groups = User.OnCreate.class)
     @Email(message = "Некорректный формат электронной почты", groups = {User.OnCreate.class, User.OnUpdate.class})
-    String email;
+    private String email;
 
     @NotBlank(message = "Логин не может быть пустым", groups = {User.OnCreate.class, User.OnUpdate.class})
     @Pattern(regexp = "^\\S*$", message = "Логин не должен содержать пробелы", groups = {User.OnCreate.class, User.OnUpdate.class})
-    String login;
+    private String login;
 
-    String name;
+    private String name;
 
     @NotNull
     @Past(message = "Дата рождения не может быть в будущем", groups = {User.OnCreate.class, User.OnUpdate.class})
-    LocalDate birthday;
+    private LocalDate birthday;
 
     private Set<Long> friends = new HashSet<>();
 }

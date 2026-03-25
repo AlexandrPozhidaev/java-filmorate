@@ -5,17 +5,15 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.time.LocalDate;
-import java.util.Set;
 
 @Value
 @Builder
 @AllArgsConstructor
 public class UserResponse {
 
-    Long id;
-    String email;
-    String login;
-    String name;
-    LocalDate birthday;
-    Set<Long> friends;
-}
+    private Long id;
+    private String email;
+    private String login;
+    private String name;
+    private LocalDate birthday;
+    }

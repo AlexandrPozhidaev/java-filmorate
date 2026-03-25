@@ -14,5 +14,4 @@ public interface FilmMapper {
     Film toFilm(FilmRequest filmRequest);
 
     FilmResponse toResponse(Film film);
-
 }

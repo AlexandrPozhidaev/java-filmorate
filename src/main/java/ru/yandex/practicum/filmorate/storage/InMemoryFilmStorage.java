@@ -1,11 +1,9 @@
 package ru.yandex.practicum.filmorate.storage;
 
 import org.apache.coyote.BadRequestException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -14,15 +12,9 @@ import java.util.stream.Collectors;
 public class InMemoryFilmStorage implements FilmStorage {
 
     private final HashMap<Long, Film> films = new HashMap<>();
-    private final UserStorage userStorage;
-    private Long generateId = 0L;
+     private Long generateId = 0L;
 
-    @Autowired
-    public InMemoryFilmStorage(UserStorage userStorage) {
-        this.userStorage = userStorage;
-    }
-
-    @Override
+        @Override
     public Film create(Film film) {
         film.setId(++generateId);
         films.put(film.getId(), film);
@@ -49,12 +41,17 @@ public class InMemoryFilmStorage implements FilmStorage {
         if (film == null) {
             throw new NotFoundException("Фильм с ID " + filmId + " не найден");
         }
-
-        User user = userStorage.getById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
-
-        film.getLikes().add(userId);
-        update(film);
+        Set<Long> updatedLikes = new HashSet<>(film.getLikes());
+        updatedLikes.add(userId);
+        Film updatedFilm = Film.builder()
+                .id(film.getId())
+                .name(film.getName())
+                .description(film.getDescription())
+                .releaseDate(film.getReleaseDate())
+                .duration(film.getDuration())
+                .likes(updatedLikes)
+                .build();
+        films.put(filmId, updatedFilm);
     }
 
     @Override
@@ -63,16 +60,20 @@ public class InMemoryFilmStorage implements FilmStorage {
         if (film == null) {
             throw new NotFoundException("Фильм с ID " + filmId + " не найден");
         }
-
-        User user = userStorage.getById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
-
         if (!film.getLikes().contains(userId)) {
             throw new BadRequestException("Пользователь с ID " + userId + " не ставил лайк этому фильму");
         }
-
-        film.getLikes().remove(userId);
-        update(film); // используем локальный update, а не filmStorage.update
+        Set<Long> updatedLikes = new HashSet<>(film.getLikes());
+        updatedLikes.remove(userId);
+        Film updatedFilm = Film.builder()
+                .id(film.getId())
+                .name(film.getName())
+                .description(film.getDescription())
+                .releaseDate(film.getReleaseDate())
+                .duration(film.getDuration())
+                .likes(updatedLikes)
+                .build();
+        films.put(filmId, updatedFilm);
         return true;
     }
 
