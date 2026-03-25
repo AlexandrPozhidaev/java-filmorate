@@ -10,6 +10,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.request.FilmRequest;
 import ru.yandex.practicum.filmorate.model.response.FilmResponse;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 public class FilmService {
 
     private final FilmStorage filmStorage;
+    private final UserStorage userStorage;
     private final FilmMapper mapper;
 
     public FilmResponse create(FilmRequest filmRequest) {
@@ -45,6 +47,12 @@ public class FilmService {
 
     public void addLike(Long filmId, Long userId) {
         log.info("Пользователь с ID {} поставил лайк фильму с ID {}", userId, filmId);
+        userStorage.getById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
+
+            filmStorage.getById(filmId)
+                .orElseThrow(() -> new NotFoundException("Фильм с ID " + filmId + " не найден"));
+
         filmStorage.addLike(filmId, userId);
     }
 
