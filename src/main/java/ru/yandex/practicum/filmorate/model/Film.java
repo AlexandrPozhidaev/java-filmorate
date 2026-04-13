@@ -34,4 +34,10 @@ public class Film {
 
     @Builder.Default
     private Set<Long> likes = new HashSet<>();
+
+    @NotNull(message = "Рейтинг MPAA обязателен")
+    private MpaRating mpa;
+
+    @NotEmpty(message = "Фильм должен иметь хотя бы один жанр")
+    private Set<Genre> genres = new HashSet<>();
 }
