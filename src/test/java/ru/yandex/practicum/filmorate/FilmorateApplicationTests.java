@@ -1,262 +1,253 @@
 package ru.yandex.practicum.filmorate;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
+import ru.yandex.practicum.filmorate.controller.service.FilmService;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.model.request.FilmRequest;
-import ru.yandex.practicum.filmorate.model.request.UserRequest;
+import ru.yandex.practicum.filmorate.storage.db.dbStorage.DbFilmStorage;
+import ru.yandex.practicum.filmorate.storage.db.dbStorage.DbUserStorage;
+import ru.yandex.practicum.filmorate.storage.db.mapper.FilmRowMapper;
+import ru.yandex.practicum.filmorate.storage.db.mapper.UserRowMapper;
 
 import java.time.LocalDate;
-import java.util.Set;
+import java.util.List;
+import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@JdbcTest
+@Import({DbUserStorage.class, DbFilmStorage.class, UserRowMapper.class, FilmRowMapper.class})
+@AutoConfigureTestDatabase
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 class FilmorateApplicationTests {
 
-    private Validator validator;
+    private final DbUserStorage userStorage;
+
+    private final DbFilmStorage filmStorage;
+    private final JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void setUp() {
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        validator = factory.getValidator();
+        jdbcTemplate.update("DELETE FROM film_likes");
+        jdbcTemplate.update("DELETE FROM user_friends");
+        jdbcTemplate.update("DELETE FROM films");
+        jdbcTemplate.update("DELETE FROM users");
     }
 
-    // === ТЕСТЫ ДЛЯ FilmRequest ===
+    @Test
+    public void testFindUserById() {
+
+        Optional<User> userOptional = userStorage.getById(1L);
+
+        assertThat(userOptional)
+                .isPresent()
+                .hasValueSatisfying(user ->
+                        assertThat(user).hasFieldOrPropertyWithValue("id", 1L)
+                );
+    }
 
     @Test
-    void testValidFilmRequest() {
-        FilmRequest filmRequest = FilmRequest.builder()
-                .name("Valid Film")
-                .description("Valid description")
-                .releaseDate(LocalDate.of(2023, 1, 1))
+    void shouldCreateFilm() {
+        Film newFilm = Film.builder()
+                .name("New Film")
+                .description("New Description")
                 .duration(120L)
-                .build();
-
-        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
-        assertTrue(violations.isEmpty(), "Валидация должна проходить успешно для корректных данных FilmRequest");
-    }
-
-    @Test
-    void testEmptyNameInFilmRequest() {
-        FilmRequest filmRequest = FilmRequest.builder()
-                .name("")
-                .description("Description")
                 .releaseDate(LocalDate.of(2023, 1, 1))
-                .duration(120L)
+                .mpaId(1L)
                 .build();
 
-        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
-        assertEquals(1, violations.size(), "Должно быть одно нарушение для пустого имени");
+        Film createdFilm = filmStorage.create(newFilm);
 
-        ConstraintViolation<FilmRequest> violation = violations.iterator().next();
-        assertEquals("name", violation.getPropertyPath().toString());
-        assertTrue(violation.getMessage().contains("не может быть пустым"),
-                "Сообщение об ошибке должно содержать 'не может быть пустым'");
+        assertThat(createdFilm).isNotNull();
+        assertThat(createdFilm.getId()).isNotNull();
+        assertThat(createdFilm.getName()).isEqualTo("New Film");
+        assertThat(createdFilm.getDescription()).isEqualTo("New Description");
     }
 
     @Test
-    void testNullNameInFilmRequest() {
-        FilmRequest filmRequest = FilmRequest.builder()
-                .name(null)
-                .description("Description")
-                .releaseDate(LocalDate.of(2023, 1, 1))
-                .duration(120L)
-                .build();
+    void shouldFindFilmById() {
+        Optional<Film> filmOptional = filmStorage.getById(1L);
 
-        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
-        assertEquals(1, violations.size());
-
-        ConstraintViolation<FilmRequest> violation = violations.iterator().next();
-        assertEquals("name", violation.getPropertyPath().toString());
-        assertTrue(violation.getConstraintDescriptor().getAnnotation() instanceof NotBlank);
+        assertThat(filmOptional)
+                .isPresent()
+                .hasValueSatisfying(film -> {
+                    assertThat(film.getId()).isEqualTo(1L);
+                    assertThat(film.getName()).isEqualTo("TestFilm1");
+                    assertThat(film.getDuration()).isEqualTo(120);
+                });
     }
 
     @Test
-    void testDescriptionTooLongInFilmRequest() {
-        String longDescription = "a".repeat(201);
-        FilmRequest filmRequest = FilmRequest.builder()
-                .name("Film")
-                .description(longDescription)
-                .releaseDate(LocalDate.of(2023, 1, 1))
-                .duration(120L)
-                .build();
-
-        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
-        assertEquals(1, violations.size());
-
-        ConstraintViolation<FilmRequest> violation = violations.iterator().next();
-        assertEquals("description", violation.getPropertyPath().toString());
-        assertTrue(violation.getMessage().contains("Максимальная длина описания"),
-                "Сообщение должно содержать информацию о максимальной длине");
+    void shouldReturnEmptyWhenFilmNotFound() {
+        Optional<Film> filmOptional = filmStorage.getById(999L);
+        assertThat(filmOptional).isEmpty();
     }
 
     @Test
-    void testMaxDescriptionLengthInFilmRequest() {
-        String maxDescription = "a".repeat(200);
-        FilmRequest filmRequest = FilmRequest.builder()
-                .name("Film")
-                .description(maxDescription)
-                .releaseDate(LocalDate.of(2023, 1, 1))
-                .duration(120L)
-                .build();
+    void shouldUpdateFilm() {
+        Film existingFilm = filmStorage.getById(1L).orElse(null);
+        assertThat(existingFilm).isNotNull();
 
-        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
-        assertTrue(violations.isEmpty(), "Описание максимальной длины должно проходить валидацию");
+        existingFilm.setName("Updated Film Name");
+        existingFilm.setDuration(150L);
+
+        Film updatedFilm = filmStorage.update(existingFilm);
+
+        assertThat(updatedFilm.getName()).isEqualTo("Updated Film Name");
+        assertThat(updatedFilm.getDuration()).isEqualTo(150L);
     }
 
     @Test
-    void testNegativeDurationInFilmRequest() {
-        FilmRequest filmRequest = FilmRequest.builder()
-                .name("Film")
-                .description("Description")
-                .releaseDate(LocalDate.of(2023, 1, 1))
-                .duration(-10L)
-                .build();
-
-        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
-        assertEquals(1, violations.size());
-
-        ConstraintViolation<FilmRequest> violation = violations.iterator().next();
-        assertEquals("duration", violation.getPropertyPath().toString());
-        assertTrue(violation.getConstraintDescriptor().getAnnotation() instanceof Positive);
+    void shouldGetAllFilms() {
+        List<Film> films = filmStorage.getAll();
+        assertThat(films).hasSize(2);
+        assertThat(films)
+                .extracting("name")
+                .containsExactly("TestFilm1", "TestFilm2");
     }
 
     @Test
-    void testZeroDurationInFilmRequest() {
-        FilmRequest filmRequest = FilmRequest.builder()
-                .name("Film")
-                .description("Description")
-                .releaseDate(LocalDate.of(2023, 1, 1))
-                .duration(0L)
-                .build();
+    void shouldGetPopularFilms() {
+        // Добавляем несколько лайков для фильма 1
+        filmStorage.addLike(1L, 1L);
+        filmStorage.addLike(1L, 2L);
 
-        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
-        assertEquals(1, violations.size());
-
-        ConstraintViolation<FilmRequest> violation = violations.iterator().next();
-        assertEquals("duration", violation.getPropertyPath().toString());
-        assertTrue(violation.getConstraintDescriptor().getAnnotation() instanceof Positive);
+        List<Film> popularFilms = filmStorage.getPopularFilms(1);
+        assertThat(popularFilms).hasSize(1);
+        assertThat(popularFilms.get(0).getId()).isEqualTo(1L);
     }
 
     @Test
-    void testMinDurationInFilmRequest() {
-        FilmRequest filmRequest = FilmRequest.builder()
-                .name("Film")
-                .description("Description")
-                .releaseDate(LocalDate.of(2023, 1, 1))
-                .duration(1L)
+    void shouldCreateUser() {
+        User newUser = User.builder()
+                .email("new@test.ru")
+                .login("newuser")
+                .name("New User")
+                .birthday(LocalDate.of(2000, 1, 1))
                 .build();
 
-        Set<ConstraintViolation<FilmRequest>> violations = validator.validate(filmRequest);
-        assertTrue(violations.isEmpty(), "Минимальная длительность (1 секунда) должна проходить валидацию");
-    }
+        User createdUser = userStorage.create(newUser);
 
-    // === ТЕСТЫ ДЛЯ UserRequest ===
-
-    @Test
-    void testValidUserRequest() {
-        UserRequest userRequest = UserRequest.builder()
-                .email("test@example.com")
-                .login("validlogin")
-                .name("John Doe")
-                .birthday(LocalDate.of(1990, 1, 1))
-                .build();
-
-        Set<ConstraintViolation<UserRequest>> violations = validator.validate(userRequest);
-        assertTrue(violations.isEmpty(), "Валидация должна проходить успешно для корректных данных UserRequest");
+        assertThat(createdUser).isNotNull();
+        assertThat(createdUser.getId()).isNotNull();
+        assertThat(createdUser.getEmail()).isEqualTo("new@test.ru");
     }
 
     @Test
-    void testEmptyLoginInUserRequest() {
-        UserRequest userRequest = UserRequest.builder()
-                .email("test@example.com")
-                .login("")
-                .birthday(LocalDate.of(1990, 1, 1))
-                .build();
+    void shouldFindUserById() {
+        Optional<User> userOptional = userStorage.getById(1L);
 
-        Set<ConstraintViolation<UserRequest>> violations =
-                validator.validate(userRequest, User.OnCreate.class);
-
-        assertEquals(1, violations.size(),
-                "Должно быть одно нарушение для пустого login в группе OnCreate");
-
-        ConstraintViolation<UserRequest> violation = violations.iterator().next();
-        assertEquals("login", violation.getPropertyPath().toString());
-        assertTrue(violation.getMessage().contains("не может быть пустым"));
+        assertThat(userOptional)
+                .isPresent()
+                .hasValueSatisfying(user -> {
+                    assertThat(user.getId()).isEqualTo(1L);
+                    assertThat(user.getEmail()).isEqualTo("testUser1@test.ru");
+                    assertThat(user.getLogin()).isEqualTo("testUser1");
+                });
     }
 
     @Test
-    void testNullLoginInUserRequest() {
-        UserRequest userRequest = UserRequest.builder()
-                .email("test@example.com")
-                .login(null)
-                .birthday(LocalDate.of(1990, 1, 1))
-                .build();
-
-        Set<ConstraintViolation<UserRequest>> violations =
-                validator.validate(userRequest, User.OnCreate.class);
-
-        assertEquals(1, violations.size(),
-                "Должно быть одно нарушение для null login в группе OnCreate");
-
-        ConstraintViolation<UserRequest> violation = violations.iterator().next();
-        assertEquals("login", violation.getPropertyPath().toString());
-        assertTrue(violation.getMessage().contains("не может быть пустым"));
-    }
-
-
-      @Test
-    void testValidEmailFormatInUserRequest() {
-        UserRequest userRequest = UserRequest.builder()
-                .email("valid.email+tag@example.co.uk")
-                .login("validlogin")
-                .birthday(LocalDate.of(1990, 1, 1))
-                .build();
-
-        Set<ConstraintViolation<UserRequest>> violations = validator.validate(userRequest);
-        assertTrue(violations.isEmpty(), "Корректный формат email должен проходить валидацию");
+    void shouldReturnEmptyWhenUserNotFound() {
+        Optional<User> userOptional = userStorage.getById(999L);
+        assertThat(userOptional).isEmpty();
     }
 
     @Test
-    void testLongLoginInUserRequest() {
-        String longLogin = "a".repeat(50); // Предполагаем, что лимит > 50
-        UserRequest userRequest = UserRequest.builder()
-                .email("test@example.com")
-                .login(longLogin)
-                .birthday(LocalDate.of(1990, 1, 1))
-                .build();
+    void shouldUpdateUser() {
+        User existingUser = userStorage.getById(1L).orElse(null);
+        assertThat(existingUser).isNotNull();
 
-        Set<ConstraintViolation<UserRequest>> violations = validator.validate(userRequest);
-        assertTrue(violations.isEmpty(), "Длинный логин должен проходить валидацию, если не превышает лимита");
+        existingUser.setName("Updated Name");
+        existingUser.setEmail("updated@test.ru");
+
+        User updatedUser = userStorage.update(existingUser);
+
+        assertThat(updatedUser.getName()).isEqualTo("Updated Name");
+        assertThat(updatedUser.getEmail()).isEqualTo("updated@test.ru");
     }
 
     @Test
-    void testMinLoginLengthInUserRequest() {
-        UserRequest userRequest = UserRequest.builder()
-                .email("test@example.com")
-                .login("a") // Минимальная длина — 1 символ
-                .birthday(LocalDate.of(1990, 1, 1))
-                .build();
-
-        Set<ConstraintViolation<UserRequest>> violations = validator.validate(userRequest);
-        assertTrue(violations.isEmpty(), "Логин минимальной длины должен проходить валидацию");
+    void shouldGetAllUsers() {
+        List<User> users = userStorage.getAll();
+        assertThat(users).hasSize(3);
+        assertThat(users)
+                .extracting("login")
+                .containsExactly("testUser1", "testUser2", "testUser3");
     }
 
     @Test
-    void testTodayBirthdayInUserRequest() {
-        UserRequest userRequest = UserRequest.builder()
-                .email("test@example.com")
-                .login("validlogin")
-                .birthday(LocalDate.now())
-                .build();
+    void shouldDeleteUser() {
+        userStorage.deleteUser(1L);
 
-        Set<ConstraintViolation<UserRequest>> violations = validator.validate(userRequest);
-        assertTrue(violations.isEmpty(), "Сегодняшняя дата рождения должна проходить валидацию");
+        Optional<User> deletedUser = userStorage.getById(1L);
+        assertThat(deletedUser).isEmpty();
+
+        // Проверяем, что пользователь действительно удалён из БД
+        assertThatThrownBy(() -> userStorage.deleteUser(1L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("User with id 1 not found");
+    }
+
+    @Test
+    void shouldAddFriend() {
+        // Добавляем друга пользователю с ID 1
+        userStorage.addFriend(1L, 2L);
+
+        // Получаем список друзей пользователя 1
+        List<User> friends = userStorage.getFriends(1L);
+
+        assertThat(friends).hasSize(1);
+        assertThat(friends.get(0).getId()).isEqualTo(2L);
+    }
+
+    @Test
+    void shouldDeleteFriend() {
+        // Сначала добавляем друга
+        userStorage.addFriend(1L, 3L);
+
+        // Затем удаляем
+        userStorage.deleteFriend(1L, 3L);
+
+        // Проверяем, что друг удалён
+        List<User> friends = userStorage.getFriends(1L);
+        assertThat(friends).isEmpty();
+    }
+
+    @Test
+    void shouldGetFriends() {
+        // Добавляем нескольких друзей пользователю 1
+        userStorage.addFriend(1L, 2L);
+        userStorage.addFriend(1L, 3L);
+
+        List<User> friends = userStorage.getFriends(1L);
+        assertThat(friends).hasSize(2);
+        assertThat(friends)
+                .extracting("id")
+                .containsExactlyInAnyOrder(2L, 3L); // Порядок может быть любым
+    }
+
+    @Test
+    void shouldGetCommonFriends() {
+        // Пользователь 1 дружит с 2 и 3
+        userStorage.addFriend(1L, 2L);
+        userStorage.addFriend(1L, 3L);
+
+        // Пользователь 4 дружит с 2 и 5
+        userStorage.addFriend(4L, 2L);
+        userStorage.addFriend(4L, 5L);
+
+        // Общий друг — пользователь 2
+        List<User> commonFriends = userStorage.getCommonFriends(1L, 4L);
+
+        assertThat(commonFriends).hasSize(1);
+        assertThat(commonFriends.get(0).getId()).isEqualTo(2L);
     }
 }

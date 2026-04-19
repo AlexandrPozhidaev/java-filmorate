@@ -15,22 +15,10 @@ import java.util.Set;
 @AllArgsConstructor
 public class FilmRequest {
 
-    @NotNull(groups = User.OnUpdate.class)
-    private Long id;
-
-    @NotBlank(message = "Название не может быть пустым")
     private String name;
-
-    @Size(min = 1, max = 200, message = "Максимальная длина описания - 200 символов")
     private String description;
-
-    @NotNull(message = "Дата выпуска обязательна")
-    @ValidReleaseDate(message = "Дата релиза не может быть раньше 28/12/1895 года")
+    private Integer duration;
     private LocalDate releaseDate;
-
-    @Positive(message = "Продолжительность фильма должна быть положительным числом")
-    private Long duration;
-
-    @Builder.Default
-    private Set<Long> likes = new HashSet<>();
+    private Long mpaId;
+    private Set<Long> genreIds = new HashSet<>();
 }

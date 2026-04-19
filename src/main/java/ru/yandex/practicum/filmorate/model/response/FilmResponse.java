@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Set;
 
 @Value
 @Builder
@@ -14,6 +16,9 @@ public class FilmResponse {
     private Long id;
     private String name;
     private String description;
+    private Integer duration;
     private LocalDate releaseDate;
-    private Long duration;
+    private Set<Long> likes;
+    private Long mpaId;
+    private List<Long> genreIds;
     }

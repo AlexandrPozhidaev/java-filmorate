@@ -1,66 +1,60 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.coyote.BadRequestException;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.controller.service.FilmService;
 import ru.yandex.practicum.filmorate.model.request.FilmRequest;
 import ru.yandex.practicum.filmorate.model.response.FilmResponse;
+import ru.yandex.practicum.filmorate.controller.service.FilmService;
 
 import java.util.List;
 
-@Slf4j
 @RestController
 @RequestMapping("/films")
 @RequiredArgsConstructor
 public class FilmController {
 
-    private final FilmService service;
+    private final FilmService filmService;
 
     @PostMapping
-    public FilmResponse create(@Valid @RequestBody FilmRequest filmRequest) {
-        log.info("Начато создание фильма {}", filmRequest);
-        return service.create(filmRequest);
+    @ResponseStatus(HttpStatus.CREATED)
+    public FilmResponse createFilm(@RequestBody FilmRequest filmRequest) {
+        return filmService.create(filmRequest);
     }
 
     @PutMapping
-    public FilmResponse update(@Valid @RequestBody FilmRequest filmRequest) {
-        log.info("Начато обновление фильма {}", filmRequest);
-        return service.update(filmRequest);
+    public FilmResponse updateFilm(@RequestBody FilmRequest filmRequest) {
+        return filmService.update(filmRequest);
     }
 
     @GetMapping
-    public List<FilmResponse> getAll() {
-        log.info("Запрошен вывод всех фильмов");
-        return service.getAll();
+    public List<FilmResponse> getAllFilms() {
+        return filmService.getAll();
     }
 
     @GetMapping("/{id}")
-    public FilmResponse getById(@PathVariable Long id) {
-        log.info("Запрошены данные фильма с ID {}", id);
-        return service.getById(id);
+    public FilmResponse getFilmById(@PathVariable Long id) {
+        return filmService.getById(id);
     }
 
-    @PutMapping("/{id}/like/{userId}")
-    public void addLike(@PathVariable Long id, @PathVariable Long userId) {
-        log.info("Пользователь с ID {} поставил лайк фильму с ID {}", userId, id);
-        service.addLike(id, userId);
+    @PutMapping("/{filmId}/like/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void addLike(@PathVariable Long filmId, @PathVariable Long userId) {
+        filmService.addLike(filmId, userId);
     }
 
-    @DeleteMapping("/{id}/like/{userId}")
-    public void deleteLike(@PathVariable Long id, @PathVariable Long userId) throws BadRequestException {
-        log.info("Пользователь с ID {} убрал лайк у фильма с ID {}", userId, id);
-        service.deleteLike(id, userId);
+    @DeleteMapping("/{filmId}/like/{userId}")
+    @ResponseStatus(HttpStatus.OK)
+    public void deleteLike(@PathVariable Long filmId, @PathVariable Long userId) {
+        filmService.deleteLike(filmId, userId);
     }
 
     @GetMapping("/popular")
-    public List<FilmResponse> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
-        log.info("Запрошен список из {} популярных фильмов", count);
+    public List<FilmResponse> getPopularFilms(
+            @RequestParam(defaultValue = "10") int count) {
         if (count <= 0) {
-            throw new IllegalArgumentException("Количество фильмов должно быть положительным");
+            count = 10;
         }
-        return service.getPopularFilms(count);
+        return filmService.getPopularFilms(count);
     }
 }

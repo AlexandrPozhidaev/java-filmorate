@@ -1,9 +1,10 @@
-package ru.yandex.practicum.filmorate.storage;
+package ru.yandex.practicum.filmorate.storage.db.memory;
 
 import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -55,14 +56,12 @@ public class InMemoryFilmStorage implements FilmStorage {
     }
 
     @Override
-    public boolean deleteLike(Long filmId, Long userId) throws BadRequestException {
+    public boolean deleteLike(Long filmId, Long userId) {
         Film film = films.get(filmId);
         if (film == null) {
             throw new NotFoundException("Фильм с ID " + filmId + " не найден");
         }
-        if (!film.getLikes().contains(userId)) {
-            throw new BadRequestException("Пользователь с ID " + userId + " не ставил лайк этому фильму");
-        }
+
         Set<Long> updatedLikes = new HashSet<>(film.getLikes());
         updatedLikes.remove(userId);
         Film updatedFilm = Film.builder()

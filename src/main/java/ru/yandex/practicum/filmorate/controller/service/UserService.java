@@ -11,16 +11,18 @@ import ru.yandex.practicum.filmorate.model.response.UserResponse;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class UserService {
+public class UserService implements UserServiceInt{
 
     private final UserStorage userStorage;
     private final UserMapper mapper;
 
+    @Override
     public UserResponse create(UserRequest request) {
         User user = mapper.toUser(request);
         if (user.getName() == null || user.getName().trim().isEmpty()) {
@@ -30,6 +32,7 @@ public class UserService {
         return mapper.toResponse(createdUser);
     }
 
+    @Override
     public UserResponse update(UserRequest request) {
         log.info("Начато обновление пользователя {}", request);
 
@@ -43,18 +46,28 @@ public class UserService {
         return mapper.toResponse(updatedUser);
     }
 
-    public List<UserResponse> getAllUsers() {
+    @Override
+    public List<UserResponse> getAll() {
         return userStorage.getAll().stream()
                 .map(mapper::toResponse)
                 .collect(Collectors.toList());
     }
 
-    public UserResponse getUserById(Long id) {
-        User user = userStorage.getById(id)
-                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + id + " не найден"));
-        return mapper.toResponse(user);
+    @Override
+    public Optional<UserResponse> getById(Long id) {
+        return userStorage.getById(id)
+                .map(mapper::toResponse);
     }
 
+    @Override
+    public void deleteUser(Long id) {
+        userStorage.getById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + id + " не найден"));
+        userStorage.deleteUser(id);
+        log.info("Пользователь с ID {} успешно удалён", id);
+    }
+
+    @Override
     public void addFriend(Long userId, Long friendId) {
         log.info("Пользователь с ID {} добавляет в друзья пользователя с ID {}", userId, friendId);
         if (userId == null || friendId == null) {
@@ -66,6 +79,7 @@ public class UserService {
         userStorage.addFriend(userId, friendId);
     }
 
+    @Override
     public void deleteFriend(Long userId, Long friendId) {
         log.info("Пользователь с ID {} удаляет из друзей пользователя с ID {}", userId, friendId);
         if (userId == null || friendId == null) {
@@ -79,6 +93,7 @@ public class UserService {
         log.info("Друг успешно удалён: {} → {}", userId, friendId);
     }
 
+    @Override
     public List<UserResponse> getCommonFriends(Long userId1, Long userId2) {
         log.info("Поиск общих друзей для пользователей с ID: {} и {}", userId1, userId2);
         List<User> commonFriends = userStorage.getCommonFriends(userId1, userId2);
@@ -87,6 +102,7 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    @Override
     public List<UserResponse> getFriends(Long id) {
         log.debug("Загружаем друзей для пользователя с ID: {}", id);
         List<User> friends = userStorage.getFriends(id);

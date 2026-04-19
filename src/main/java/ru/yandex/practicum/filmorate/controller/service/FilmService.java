@@ -56,7 +56,7 @@ public class FilmService {
         filmStorage.addLike(filmId, userId);
     }
 
-    public void deleteLike(Long filmId, Long userId) throws BadRequestException {
+    public void deleteLike(Long filmId, Long userId) {
         log.info("Пользователь с ID {} убрал лайк у фильма с ID {}", userId, filmId);
         Film film = filmStorage.getById(filmId)
                 .orElseThrow(() -> new NotFoundException("Фильм с ID " + filmId + " не найден"));
@@ -66,7 +66,6 @@ public class FilmService {
                     "Пользователь с ID " + userId + " не ставил лайк этому фильму"
             );
         }
-
         film.getLikes().remove(userId);
         }
 
