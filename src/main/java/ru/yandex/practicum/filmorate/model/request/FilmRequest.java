@@ -1,20 +1,19 @@
-package ru.yandex.practicum.filmorate.model;
+package ru.yandex.practicum.filmorate.model.request;
 
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import jakarta.validation.constraints.*;
+import lombok.Value;
+import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
-@Data
+@Value
 @Builder
 @AllArgsConstructor
-@NoArgsConstructor
-public class Film {
+public class FilmRequest {
 
     @NotNull(groups = User.OnUpdate.class)
     private Long id;
@@ -26,7 +25,7 @@ public class Film {
     private String description;
 
     @NotNull(message = "Дата выпуска обязательна")
-    @PastOrPresent(message = "Дата выпуска не может быть в будущем")
+    @ValidReleaseDate(message = "Дата релиза не может быть раньше 28/12/1895 года")
     private LocalDate releaseDate;
 
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
@@ -34,10 +33,4 @@ public class Film {
 
     @Builder.Default
     private Set<Long> likes = new HashSet<>();
-
-    @NotNull(message = "Рейтинг MPAA обязателен")
-    private MpaRating mpa;
-
-    @NotEmpty(message = "Фильм должен иметь хотя бы один жанр")
-    private Set<Genre> genres = new HashSet<>();
 }
