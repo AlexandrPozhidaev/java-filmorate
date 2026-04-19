@@ -17,6 +17,8 @@ public interface FilmMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "likes", ignore = true)
+    @Mapping(target = "mpaId", ignore = true)
+    @Mapping(target = "genreIds", ignore = true)
     Film toFilm(FilmRequest filmRequest);
 
     @Mapping(source = "likes", target = "likes")

@@ -11,6 +11,7 @@ import ru.yandex.practicum.filmorate.model.response.UserResponse;
 public interface UserMapper {
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "friends", ignore = true)
     User toUser(UserRequest request);
 
     UserResponse toResponse(User user);
