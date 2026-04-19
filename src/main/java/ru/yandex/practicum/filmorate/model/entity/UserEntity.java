@@ -28,7 +28,6 @@ public class UserEntity {
     @NotNull
     @Past(message = "Дата рождения не может быть в будущем", groups = {User.OnCreate.class, User.OnUpdate.class})
     private LocalDate birthday;
-    // Односторонняя дружба — только исходящие запросы
     @Builder.Default
     private Set<Long> friends = new HashSet<>();
 }

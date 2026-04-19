@@ -12,7 +12,6 @@ import java.util.Set;
 @Builder
 @AllArgsConstructor
 public class FilmResponse {
-
     private Long id;
     private String name;
     private String description;

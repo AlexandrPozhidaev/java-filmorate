@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.db.mapper;
 
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.model.entity.UserEntity;

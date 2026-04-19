@@ -19,6 +19,6 @@ public class FilmEntity {
     private Long duration;
     private LocalDate releaseDate;
     private Set<Long> likes;
-    private Long mpaId; // ID рейтинга вместо объекта
-    private List<Long> genreIds; // Список ID жанров вместо объектов
+    private Long mpaId;
+    private List<Long> genreIds;
 }
