@@ -14,11 +14,18 @@ import java.util.Set;
 public class FilmEntity {
 
     private Long id;
+
     private String name;
+
     private String description;
+
     private Long duration;
+
     private LocalDate releaseDate;
+
     private Set<Long> likes;
+
     private Long mpaId;
+
     private List<Long> genreIds;
 }

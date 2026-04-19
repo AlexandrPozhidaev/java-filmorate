@@ -9,13 +9,21 @@ import java.util.Optional;
 public interface UserServiceInt {
 
     UserResponse create(UserRequest userRequest);
+
     UserResponse update(UserRequest userRequest);
+
     List<UserResponse> getAll();
+
     Optional<UserResponse> getById(Long id);
+
     void deleteUser(Long id);
+
     void addFriend(Long userId, Long friendId);
+
     void deleteFriend(Long userId, Long friendId);
+
     List<UserResponse> getCommonFriends(Long userId1, Long userId2);
+
     List<UserResponse> getFriends(Long id);
 
 }

@@ -25,9 +25,12 @@ public class UserEntity {
     @NotBlank(message = "Логин не может быть пустым", groups = {User.OnCreate.class, User.OnUpdate.class})
     @Pattern(regexp = "^\\S*$", message = "Логин не должен содержать пробелы", groups = {User.OnCreate.class, User.OnUpdate.class})
     private String login;
+
     @NotNull
     @Past(message = "Дата рождения не может быть в будущем", groups = {User.OnCreate.class, User.OnUpdate.class})
+
     private LocalDate birthday;
+
     @Builder.Default
     private Set<Long> friends = new HashSet<>();
 }
