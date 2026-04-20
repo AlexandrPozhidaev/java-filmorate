@@ -1,7 +1,7 @@
 package ru.yandex.practicum.filmorate;
 
 import lombok.RequiredArgsConstructor;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
@@ -29,7 +29,7 @@ class FilmorateApplicationTests {
     private final DbFilmStorage filmStorage;
     private final JdbcTemplate jdbcTemplate;
 
-    @BeforeEach
+    @AfterEach
     void setUp() {
         jdbcTemplate.update("DELETE FROM film_likes");
         jdbcTemplate.update("DELETE FROM user_friends");
