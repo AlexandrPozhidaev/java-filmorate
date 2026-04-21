@@ -1,10 +1,10 @@
 package ru.yandex.practicum.filmorate.model;
 
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import jakarta.validation.constraints.*;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -36,9 +36,9 @@ public class Film {
     private Set<Long> likes = new HashSet<>();
 
     @NotNull(message = "Рейтинг MPAA обязателен")
-    private Long mpaId; // ID рейтинга вместо объекта
+    private Long mpaId;
 
     @NotEmpty(message = "Фильм должен иметь хотя бы один жанр")
     @Builder.Default
-    private Set<Long> genreIds = new HashSet<>(); // ID жанров вместо объектов
+    private Set<Long> genreIds = new HashSet<>();
 }

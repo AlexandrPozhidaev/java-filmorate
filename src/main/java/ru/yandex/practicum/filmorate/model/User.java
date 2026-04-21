@@ -38,5 +38,6 @@ public class User {
     @Past(message = "Дата рождения не может быть в будущем", groups = {OnCreate.class, OnUpdate.class})
     private LocalDate birthday;
 
+    @Builder.Default
     private Set<Long> friends = new HashSet<>();
 }
