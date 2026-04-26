@@ -22,8 +22,8 @@ import java.util.Optional;
 
 @Repository
 @Slf4j
-    @RequiredArgsConstructor
-    public class UserRepository {
+@RequiredArgsConstructor
+public class UserRepository {
     private final JdbcTemplate jdbc;
     private final UserRowMapper mapper;
 
