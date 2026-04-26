@@ -2,14 +2,19 @@ package ru.yandex.practicum.filmorate.dal;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dal.mappers.FilmRowMapper;
 import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 @RequiredArgsConstructor
@@ -21,17 +26,21 @@ public class FilmRepository {
         String query = "INSERT INTO films (name, description, releaseDate, duration, mpa_id) " +
                 "VALUES (?, ?, ?, ?, ?)";
 
-        int rowsAffected = jdbc.update(query,
-                film.getName(),
-                film.getDescription(),
-                film.getReleaseDate(),
-                film.getDuration(),
-                film.getMpaId()
-        );
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbc.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1, film.getName());
+            ps.setString(2, film.getDescription());
+            ps.setObject(3, film.getReleaseDate());
+            ps.setLong(4, film.getDuration());
+            ps.setLong(5, film.getMpaId());
+            return ps;
+        }, keyHolder);
 
-        if (rowsAffected == 0) {
-            throw new RuntimeException("Не удалось создать фильм: ни одной строки не добавлено");
-        }
+        Long generatedId = keyHolder.getKey().longValue();
+        film.setId(generatedId);
+
+        updateFilmGenres(generatedId, film.getGenreIds());
 
         return film;
     }
@@ -54,13 +63,13 @@ public class FilmRepository {
             throw new EntityNotFoundException("Фильм с ID " + film.getId() + " не найден");
         }
 
-        updateFilmGenres(film.getId(), (List<Long>) film.getGenreIds());
+        updateFilmGenres(film.getId(), film.getGenreIds());
 
         String selectSql = "SELECT * FROM films WHERE id = ?";
         return jdbc.queryForObject(selectSql, mapper, film.getId());
     }
 
-    private void updateFilmGenres(Long filmId, List<Long> genreIds) {
+    private void updateFilmGenres(Long filmId, Set<Long> genreIds) {
         jdbc.update("DELETE FROM film_genres WHERE film_id = ?", filmId);
         for (Long genreId : genreIds) {
             jdbc.update("INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)", filmId, genreId);

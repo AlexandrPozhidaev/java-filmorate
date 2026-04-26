@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.controller.service.UserService;
 import ru.yandex.practicum.filmorate.dto.UserDto;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.List;
@@ -29,7 +30,7 @@ public class UserController {
     }
 
     @PutMapping
-    public UserDto update(@Validated(User.OnUpdate.class) @RequestBody UserDto dto) {
+    public UserDto update(@Validated(User.OnUpdate.class) @RequestBody UserDto dto) throws UserNotFoundException {
         log.info("Начато обновление пользователя {}", dto);
         return service.update(dto);
     }

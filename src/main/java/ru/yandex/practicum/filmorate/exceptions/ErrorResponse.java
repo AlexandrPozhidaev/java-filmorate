@@ -1,16 +1,27 @@
 package ru.yandex.practicum.filmorate.exceptions;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class ErrorResponse {
     private String message;
     private int status;
     private List<String> errors;
+
+    public ErrorResponse(String message) {
+        this.message = message;
+        this.status = 0;
+        this.errors = List.of();
+    }
+
+    public ErrorResponse(String message, int status, List<String> errors) {
+        this.message = message;
+        this.status = status;
+        this.errors = errors;
+    }
+
+    public ErrorResponse() {
+    }
 }

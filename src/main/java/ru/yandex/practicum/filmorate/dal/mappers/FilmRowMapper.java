@@ -16,26 +16,32 @@ public class FilmRowMapper implements RowMapper<Film> {
         film.setId(resultSet.getLong("id"));
         film.setName(resultSet.getString("name"));
         film.setDescription(resultSet.getString("description"));
+
         java.sql.Date sqlDate = resultSet.getDate("releaseDate");
         if (sqlDate != null) {
             film.setReleaseDate(sqlDate.toLocalDate());
         } else {
             film.setReleaseDate(null);
         }
+
         long duration = resultSet.getLong("duration");
         if (resultSet.wasNull()) {
-            film.setDuration(null); // или 0L, если требуется значение по умолчанию
+            film.setDuration(0L); // значение по умолчанию
         } else {
             film.setDuration(duration);
         }
-        Long mpaId = resultSet.getLong("mpa_Id");
+
+        Long mpaId = resultSet.getLong("mpa_id");
         if (resultSet.wasNull()) {
             film.setMpaId(null);
         } else {
             film.setMpaId(mpaId);
         }
+
+        // Заполняем жанры и лайки через отдельные запросы
         film.setLikes(new HashSet<>());
         film.setGenreIds(new HashSet<>());
+
         return film;
     }
 }

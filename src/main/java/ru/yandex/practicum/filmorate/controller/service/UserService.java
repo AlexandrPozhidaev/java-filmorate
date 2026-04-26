@@ -6,6 +6,7 @@ import ru.yandex.practicum.filmorate.controller.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.dal.UserRepository;
 import ru.yandex.practicum.filmorate.dto.UserDto;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.List;
@@ -40,7 +41,7 @@ public class UserService {
         return UserMapper.mapToUserDto(createdUser);
     }
 
-    public UserDto update(UserDto dto) {
+    public UserDto update(UserDto dto) throws UserNotFoundException {
         log.info("Начато обновление пользователя {}", dto);
 
         User existingUser = userRepository.getById(dto.getId())

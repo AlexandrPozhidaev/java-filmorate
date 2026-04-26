@@ -6,6 +6,7 @@ import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.controller.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.dal.FilmRepository;
+import ru.yandex.practicum.filmorate.dal.GenreRepository;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
 import ru.yandex.practicum.filmorate.dto.GenreDto;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 public class FilmService {
 
     private final FilmRepository filmRepository;
+    private final GenreRepository genreRepository;
 
     public FilmDto create(FilmDto dto) {
         if (dto.getDuration() > 300) {
@@ -56,8 +58,8 @@ public class FilmService {
             throw new ValidationException("Фильм должен иметь хотя бы один жанр");
         }
         for (GenreDto genre : dto.getGenre()) {
-            if (genre.getId() < 1 || genre.getId() > 6) {
-                throw new ValidationException("Некорректный ID жанра: " + genre.getId());
+            if (!genreRepository.findById(genre.getId()).isPresent()) {
+                throw new ValidationException("Жанр с ID " + genre.getId() + " не существует");
             }
         }
     }

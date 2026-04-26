@@ -4,6 +4,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.controller.service.FilmService;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
@@ -19,9 +21,9 @@ public class FilmController {
     private final FilmService service;
 
     @PostMapping
-    public FilmDto create(@Valid @RequestBody FilmDto dto) {
-        log.info("Начато создание фильма {}", dto);
-        return service.create(dto);
+    public ResponseEntity<FilmDto> createFilm(@Valid @RequestBody FilmDto filmDto) {
+        FilmDto createdFilm = service.create(filmDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdFilm);
     }
 
     @PutMapping("/{id}")

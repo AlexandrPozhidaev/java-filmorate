@@ -57,32 +57,24 @@ public class UserRepository {
         }
     }
 
-    public User update(User user) {
+    public User update(User user) throws UserNotFoundException {
         validateUser(user);
 
-        int rowsAffected;
-        try {
-            rowsAffected = jdbc.update(
-                    "UPDATE users SET name = ?, email = ?, login = ?, birthday = ? WHERE id = ?",
-                    user.getName(),
-                    user.getEmail(),
-                    user.getLogin(),
-                    user.getBirthday(),
-                    user.getId()
-            );
-        } catch (DataAccessException e) {
-            throw e;
-        }
+        int rowsAffected = jdbc.update(
+                "UPDATE users SET name = ?, email = ?, login = ?, birthday = ? WHERE id = ?",
+                user.getName(),
+                user.getEmail(),
+                user.getLogin(),
+                user.getBirthday(),
+                user.getId()
+        );
 
         if (rowsAffected == 0) {
-            try {
-                throw new UserNotFoundException("Пользователь с ID " + user.getId() + " не найден");
-            } catch (UserNotFoundException e) {
-                throw new RuntimeException(e);
-            }
+            throw new UserNotFoundException("Пользователь с ID " + user.getId() + " не найден");
         }
 
-        return user;
+        return getById(user.getId()).orElseThrow(() ->
+                new UserNotFoundException("Пользователь с ID " + user.getId() + " не найден"));
     }
 
     private void validateUser(User user) {
