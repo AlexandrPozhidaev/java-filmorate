@@ -1,40 +1,34 @@
-package ru.yandex.practicum.filmorate.model;
+package ru.yandex.practicum.filmorate.dto;
 
 import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class Film {
-
-    @NotNull(groups = User.OnUpdate.class)
-    private Long id;
-
+public class FilmDto {
     @NotBlank(message = "Название не может быть пустым")
+    @Size(min = 1, max = 100, message = "Название должно быть от 1 до 100 символов")
     private String name;
 
-    @Size(min = 1, max = 200, message = "Максимальная длина описания - 200 символов")
+    @Size(max = 200, message = "Максимальная длина описания - 200 символов")
+    @NotNull(message = "Описание не может быть null")
     private String description;
 
     @NotNull(message = "Дата выпуска обязательна")
     @PastOrPresent(message = "Дата выпуска не может быть в будущем")
+    @FutureOrPresent(message = "Дата выпуска не может быть слишком далёким прошлым")
     private LocalDate releaseDate;
 
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private Long duration;
 
-    private Set<Long> likes = new HashSet<>();
-
     @NotNull(message = "Рейтинг MPAA обязателен")
-    private Long mpaId;
+    private MpaDto mpa;
 
     @NotEmpty(message = "Фильм должен иметь хотя бы один жанр")
-    private Set<Long> genreIds = new HashSet<>();
+    @Size(max = 5, message = "Фильм не может иметь более 5 жанров")
+    private List<GenreDto> genre;
 }
+

@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Genre {
-    @NotNull(message = "ID жанра обязателен")
+public class Mpa {
+    @NotNull(message = "ID рейтинга MPAA обязателен")
     private Long id;
     private String name;
 
