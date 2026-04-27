@@ -5,13 +5,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.controller.mapper.FilmMapper;
+import ru.yandex.practicum.filmorate.dal.FilmRepository;
+import ru.yandex.practicum.filmorate.dal.GenreRepository;
+import ru.yandex.practicum.filmorate.dal.UserRepository;
+import ru.yandex.practicum.filmorate.dto.FilmDto;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.request.FilmRequest;
-import ru.yandex.practicum.filmorate.model.response.FilmResponse;
-import ru.yandex.practicum.filmorate.storage.FilmStorage;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,67 +22,74 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FilmService {
 
-    private final FilmStorage filmStorage;
-    private final UserStorage userStorage;
-    private final FilmMapper mapper;
+    private final FilmRepository filmRepository;
+    private final GenreRepository genreRepository;
+    private final UserRepository userRepository;
 
-    public FilmResponse create(FilmRequest filmRequest) {
-        Film film = mapper.toFilm(filmRequest);
+
+    public FilmDto create(FilmDto dto) {
+        validateFilmDto(dto);
+        Film film = FilmMapper.toFilm(dto);
         log.info("Создание фильма: {}", film);
-        Film createdFilm = filmStorage.create(film);
-        return mapper.toResponse(createdFilm);
+        Film createdFilm = filmRepository.create(film);
+        return FilmMapper.mapToFilmDto(createdFilm);
     }
 
-    public FilmResponse update(FilmRequest filmRequest) {
-        Film film = mapper.toFilm(filmRequest);
+    private void validateFilmDto(FilmDto dto) {
+        LocalDate minReleaseDate = LocalDate.of(1895, 12, 28);
+
+        if (dto.getReleaseDate().isBefore(minReleaseDate)) {
+            throw new ValidationException("Дата выпуска не может быть раньше 28.12.1895");
+        }
+
+    }
+
+    public FilmDto update(FilmDto dto) {
+        validateFilmDto(dto);
+
+        Film film = FilmMapper.toFilm(dto);
         log.info("Обновление фильма с ID: {}", film.getId());
-        Film updatedFilm = filmStorage.update(film);
-        return mapper.toResponse(updatedFilm);
+
+        Film updatedFilm = filmRepository.update(film);
+        return FilmMapper.mapToFilmDto(updatedFilm);
     }
 
-    public List<FilmResponse> getAll() {
+        public List<FilmDto> getAll() {
         log.info("Получение всех фильмов");
-        return filmStorage.getAll().stream()
-                .map(mapper::toResponse)
+        return filmRepository.getAll().stream()
+                .map(FilmMapper::mapToFilmDto)
                 .collect(Collectors.toList());
+    }
+
+    public FilmDto getById(Long id) {
+        log.info("Поиск фильма с ID: {}", id);
+        Film film = filmRepository.getById(id)
+                .orElseThrow(() -> new NotFoundException("Фильм с ID " + id + " не найден"));
+        return FilmMapper.mapToFilmDto(film);
     }
 
     public void addLike(Long filmId, Long userId) {
         log.info("Пользователь с ID {} поставил лайк фильму с ID {}", userId, filmId);
-        userStorage.getById(userId)
+
+        // Проверка существования пользователя
+        userRepository.getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
 
-            filmStorage.getById(filmId)
-                .orElseThrow(() -> new NotFoundException("Фильм с ID " + filmId + " не найден"));
-
-        filmStorage.addLike(filmId, userId);
+        filmRepository.addLike(filmId, userId);
     }
 
     public void deleteLike(Long filmId, Long userId) throws BadRequestException {
         log.info("Пользователь с ID {} убрал лайк у фильма с ID {}", userId, filmId);
-        Film film = filmStorage.getById(filmId)
-                .orElseThrow(() -> new NotFoundException("Фильм с ID " + filmId + " не найден"));
 
-        if (!film.getLikes().contains(userId)) {
-            throw new NotFoundException(
-                    "Пользователь с ID " + userId + " не ставил лайк этому фильму"
-            );
-        }
+        filmRepository.deleteLike(filmId, userId);
+    }
 
-        film.getLikes().remove(userId);
-        }
-
-    public List<FilmResponse> getPopularFilms(int count) {
+    public List<FilmDto> getPopularFilms(int count) {
         log.info("Получение топ-{} популярных фильмов", count);
-        return filmStorage.getPopularFilms(count).stream()
-                .map(mapper::toResponse)
+        return filmRepository.getPopularFilms(count).stream()
+                .map(FilmMapper::mapToFilmDto)
                 .collect(Collectors.toList());
     }
 
-    public FilmResponse getById(Long id) {
-        log.info("Поиск фильма с ID: {}", id);
-        Film film = filmStorage.getById(id)
-                .orElseThrow(() -> new NotFoundException("Фильм с ID " + id + " не найден"));
-        return mapper.toResponse(film);
-    }
+
 }

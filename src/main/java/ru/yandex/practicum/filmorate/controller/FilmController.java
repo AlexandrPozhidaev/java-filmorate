@@ -4,10 +4,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.controller.service.FilmService;
-import ru.yandex.practicum.filmorate.model.request.FilmRequest;
-import ru.yandex.practicum.filmorate.model.response.FilmResponse;
+import ru.yandex.practicum.filmorate.dto.FilmDto;
 
 import java.util.List;
 
@@ -20,25 +21,25 @@ public class FilmController {
     private final FilmService service;
 
     @PostMapping
-    public FilmResponse create(@Valid @RequestBody FilmRequest filmRequest) {
-        log.info("Начато создание фильма {}", filmRequest);
-        return service.create(filmRequest);
+    public ResponseEntity<FilmDto> create(@Valid @RequestBody FilmDto filmDto) {
+        FilmDto createdFilm = service.create(filmDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdFilm);
     }
 
-    @PutMapping
-    public FilmResponse update(@Valid @RequestBody FilmRequest filmRequest) {
-        log.info("Начато обновление фильма {}", filmRequest);
-        return service.update(filmRequest);
+    @PutMapping("/{id}")
+    public FilmDto update(@Valid @RequestBody FilmDto dto) {
+        log.info("Начато обновление фильма {}", dto);
+        return service.update(dto);
     }
 
     @GetMapping
-    public List<FilmResponse> getAll() {
+    public List<FilmDto> getAll() {
         log.info("Запрошен вывод всех фильмов");
         return service.getAll();
     }
 
     @GetMapping("/{id}")
-    public FilmResponse getById(@PathVariable Long id) {
+    public FilmDto getById(@PathVariable Long id) {
         log.info("Запрошены данные фильма с ID {}", id);
         return service.getById(id);
     }
@@ -56,7 +57,7 @@ public class FilmController {
     }
 
     @GetMapping("/popular")
-    public List<FilmResponse> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
+    public List<FilmDto> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
         log.info("Запрошен список из {} популярных фильмов", count);
         if (count <= 0) {
             throw new IllegalArgumentException("Количество фильмов должно быть положительным");

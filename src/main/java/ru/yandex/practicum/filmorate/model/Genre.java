@@ -1,10 +1,16 @@
 package ru.yandex.practicum.filmorate.model;
 
-public enum Genre {
-    КОМЕДИЯ,
-    ДРАМА,
-    МУЛЬТФИЛЬМ,
-    ТРИЛЛЕР,
-    ДОКУМЕНТАЛЬНЫЙ,
-    БОЕВИК
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Genre {
+    @NotNull(message = "ID жанра обязателен")
+    private Long id;
+    private String name;
+
 }

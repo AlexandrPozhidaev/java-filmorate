@@ -1,31 +1,27 @@
-package ru.yandex.practicum.filmorate.model;
+package ru.yandex.practicum.filmorate.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
+import jakarta.validation.constraints.*;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class Film {
+public class FilmDto {
 
-    @NotNull(groups = User.OnUpdate.class)
     private Long id;
 
     @NotBlank(message = "Название не может быть пустым")
+    @Size(max = 100, message = "Название должно быть от 1 до 100 символов")
     private String name;
 
-    @Size(min = 1, max = 200, message = "Максимальная длина описания - 200 символов")
+    @Size(max = 200, message = "Максимальная длина описания - 200 символов")
     private String description;
 
+    @PastOrPresent(message = "Дата выпуска не может быть в будущем")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     @NotNull(message = "Дата выпуска обязательна")
     private LocalDate releaseDate;
 
@@ -37,5 +33,5 @@ public class Film {
     private Set<Long> mpa = new HashSet<>();
 
     private Set<Long> genres = new HashSet<>();
+}
 
-   }

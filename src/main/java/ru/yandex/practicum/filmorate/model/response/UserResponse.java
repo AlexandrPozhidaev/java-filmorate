@@ -10,7 +10,6 @@ import java.time.LocalDate;
 @Builder
 @AllArgsConstructor
 public class UserResponse {
-
     private Long id;
     private String email;
     private String login;
