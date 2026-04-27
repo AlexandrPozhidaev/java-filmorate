@@ -34,13 +34,6 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(ex.getMessage()));
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, String>> handleAllExceptions(Exception ex) {
-        log.error("Неожиданная ошибка: ", ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Внутренняя ошибка сервера"));
-    }
-
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, String>> handleConstraintViolation(
             ConstraintViolationException ex) {
@@ -87,6 +80,13 @@ public class GlobalExceptionHandler {
         log.warn("Пользователь не найден: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, String>> handleInternalError(Exception e) {
+        Map<String, String> errorResponse = new HashMap<>();
+        errorResponse.put("error", "Внутренняя ошибка сервера");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 
     private String extractDetailedErrorMessage(HttpMessageNotReadableException ex) {

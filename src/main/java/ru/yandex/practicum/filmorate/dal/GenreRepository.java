@@ -4,8 +4,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.Genre;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Repository
 public class GenreRepository {
@@ -33,5 +35,23 @@ public class GenreRepository {
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             return Optional.empty();
         }
+    }
+
+    public List<Genre> findAllById(List<Long> genreIds) {
+        if (genreIds == null || genreIds.isEmpty()) {
+            return List.of();
+        }
+
+        String placeholders = genreIds.stream()
+                .map(id -> "?")
+                .collect(Collectors.joining(", "));
+        String sql = "SELECT id, name FROM genres WHERE id IN (" + placeholders + ") ORDER BY id";
+
+        List<Object> parameters = new ArrayList<>(genreIds);
+
+        return jdbcTemplate.query(sql,
+                (rs, rowNum) -> new Genre(rs.getLong("id"), rs.getString("name")),
+                parameters.toArray()
+        );
     }
 }

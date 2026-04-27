@@ -10,7 +10,10 @@ import java.util.List;
 public class MpaMapper {
     public MpaDto toDto(Mpa mpa) {
         if (mpa == null) return null;
-        return new MpaDto();
+        MpaDto dto = new MpaDto();
+        dto.setId(mpa.getId());
+        dto.setName(mpa.getName());
+        return dto;
     }
 
     public List<MpaDto> toDtoList(List<Mpa> mpaList) {

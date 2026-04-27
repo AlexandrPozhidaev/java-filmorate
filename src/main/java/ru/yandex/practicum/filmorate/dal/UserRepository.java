@@ -9,6 +9,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dal.mappers.UserRowMapper;
+import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
@@ -48,14 +49,15 @@ public class UserRepository {
     }
 
     public Optional<User> getById(Long id) {
-        String query = "SELECT id, name, email, login, birthday FROM users WHERE id = ?";
+        String sql = "SELECT * FROM users WHERE id = ?";
         try {
-            User user = jdbc.queryForObject(query, mapper, id);
+            User user = jdbc.queryForObject(sql, new UserRowMapper(), id);
             return Optional.of(user);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
     }
+
 
     public User update(User user) throws UserNotFoundException {
         validateUser(user);
@@ -102,30 +104,13 @@ public class UserRepository {
     }
 
     public void addFriend(Long userId, Long friendId) {
-        String checkUserExists = "SELECT COUNT(*) FROM users WHERE id = ?";
-        int userExists = jdbc.queryForObject(checkUserExists, Integer.class, userId);
-        int friendExists = jdbc.queryForObject(checkUserExists, Integer.class, friendId);
+        String sql = "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)";
+        int rowsAffected = jdbc.update(sql, userId, friendId);
 
-        if (userExists == 0) {
-            throw new NotFoundException("Пользователь с ID " + userId + " не найден");
+        if (rowsAffected == 0) {
+            throw new EntityNotFoundException("Не удалось добавить дружбу между пользователями " +
+                    userId + " и " + friendId);
         }
-        if (friendExists == 0) {
-            throw new NotFoundException("Пользователь с ID " + friendId + " не найден");
-        }
-
-        String checkFriendship = "SELECT COUNT(*) FROM friendships " +
-                "WHERE user_id = ? AND friend_id = ?";
-        int existingFriendship = jdbc.queryForObject(checkFriendship,
-                Integer.class, userId, friendId);
-
-        if (existingFriendship > 0) {
-            return;
-        }
-
-        String insertFriendship = "INSERT INTO friendships (user_id, friend_id, created_at) " +
-                "VALUES (?, ?, NOW())";
-
-        jdbc.update(insertFriendship, userId, friendId);
     }
 
     public boolean deleteFriend(Long userId, Long friendId) {

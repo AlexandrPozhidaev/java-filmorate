@@ -31,16 +31,9 @@ public class FilmRowMapper implements RowMapper<Film> {
             film.setDuration(duration);
         }
 
-        Long mpaId = resultSet.getLong("mpa_id");
-        if (resultSet.wasNull()) {
-            film.setMpaId(null);
-        } else {
-            film.setMpaId(mpaId);
-        }
-
-        // Заполняем жанры и лайки через отдельные запросы
         film.setLikes(new HashSet<>());
-        film.setGenreIds(new HashSet<>());
+        film.setGenres(new HashSet<>());
+        film.setMpa(new HashSet<>());
 
         return film;
     }

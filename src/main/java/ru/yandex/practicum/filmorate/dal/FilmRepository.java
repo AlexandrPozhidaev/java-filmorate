@@ -10,8 +10,8 @@ import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
 
-import java.sql.PreparedStatement;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -23,31 +23,32 @@ public class FilmRepository {
     private final FilmRowMapper mapper;
 
     public Film create(Film film) {
-        String query = "INSERT INTO films (name, description, releaseDate, duration, mpa_id) " +
-                "VALUES (?, ?, ?, ?, ?)";
+        String query = "INSERT INTO films (name, description, releaseDate, duration) " +
+                "VALUES (?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
-        jdbc.update(connection -> {
+        int rowsAffected = jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, film.getName());
             ps.setString(2, film.getDescription());
-            ps.setObject(3, film.getReleaseDate());
+            if (film.getReleaseDate() != null) {
+                ps.setDate(3, java.sql.Date.valueOf(film.getReleaseDate()));
+            } else {
+                ps.setNull(3, Types.DATE);
+            }
             ps.setLong(4, film.getDuration());
-            ps.setLong(5, film.getMpaId());
             return ps;
         }, keyHolder);
 
         Long generatedId = keyHolder.getKey().longValue();
         film.setId(generatedId);
 
-        updateFilmGenres(generatedId, film.getGenreIds());
-
         return film;
     }
 
     public Film update(Film film) {
         String query = "UPDATE films " +
-                "SET name = ?, description = ?, releaseDate = ?, duration = ?, mpa_id = ? " +
+                "SET name = ?, description = ?, releaseDate = ?, duration = ? " +
                 "WHERE id = ?";
 
         int rowsAffected = jdbc.update(query,
@@ -55,7 +56,6 @@ public class FilmRepository {
                 film.getDescription(),
                 film.getReleaseDate(),
                 film.getDuration(),
-                film.getMpaId(),
                 film.getId()
         );
 
@@ -63,7 +63,7 @@ public class FilmRepository {
             throw new EntityNotFoundException("Фильм с ID " + film.getId() + " не найден");
         }
 
-        updateFilmGenres(film.getId(), film.getGenreIds());
+        updateFilmGenres(film.getId(), film.getGenres());
 
         String selectSql = "SELECT * FROM films WHERE id = ?";
         return jdbc.queryForObject(selectSql, mapper, film.getId());
@@ -77,22 +77,74 @@ public class FilmRepository {
     }
 
     public List<Film> getAll() {
-        String sql = "SELECT * FROM films ORDER BY id";
-        return jdbc.query(sql, mapper);
+        String sql = "SELECT f.*, f.mpa_id as mpa_id " +
+                "FROM films f " +
+                "ORDER BY f.id";
+        return jdbc.query(sql, (rs, rowNum) -> mapRowWithMpa(rs));
     }
 
+
     public Optional<Film> getById(Long id) {
-        String sql = "SELECT * FROM films WHERE id = ?";
+        String sql = "SELECT f.*, f.mpa_id as mpa_id " +
+                "FROM films f " +
+                "WHERE f.id = ?";
         try {
-            Film film = jdbc.queryForObject(sql, mapper, id);
+            Film film = jdbc.queryForObject(sql, (rs, rowNum) -> mapRowWithMpa(rs), id);
+            film.setGenres(loadGenresForFilm(id));
+            film.setLikes(loadLikesForFilm(id));
             return Optional.of(film);
         } catch (org.springframework.dao.EmptyResultDataAccessException e) {
             return Optional.empty();
         }
     }
 
+    private Set<Long> loadGenresForFilm(Long filmId) {
+        String sql = "SELECT genre_id FROM film_genres WHERE film_id = ?";
+        List<Long> genres = jdbc.queryForList(sql, Long.class, filmId);
+        return new HashSet<>(genres);
+    }
+
+    private Set<Long> loadLikesForFilm(Long filmId) {
+        String sql = "SELECT user_id FROM film_likes WHERE film_id = ?";
+        List<Long> likes = jdbc.queryForList(sql, Long.class, filmId);
+        return new HashSet<>(likes);
+    }
+
+    private Film mapRowWithMpa(ResultSet resultSet) throws SQLException {
+        Film film = new Film();
+        film.setId(resultSet.getLong("id"));
+        film.setName(resultSet.getString("name"));
+        film.setDescription(resultSet.getString("description"));
+
+        java.sql.Date sqlDate = resultSet.getDate("releaseDate");
+        if (sqlDate != null) {
+            film.setReleaseDate(sqlDate.toLocalDate());
+        } else {
+            film.setReleaseDate(null);
+        }
+
+        long duration = resultSet.getLong("duration");
+        if (resultSet.wasNull()) {
+            film.setDuration(0L);
+        } else {
+            film.setDuration(duration);
+        }
+
+        Long mpaId = resultSet.getLong("mpa_id");
+        if (!resultSet.wasNull()) {
+            film.setMpa(Set.of(mpaId));
+        } else {
+            film.setMpa(new HashSet<>());
+        }
+
+        film.setGenres(new HashSet<>());
+        film.setLikes(new HashSet<>());
+
+        return film;
+    }
+
+
     public void addLike(Long filmId, Long userId) {
-        // Проверяем, не поставил ли уже пользователь лайк
         String checkSql = "SELECT COUNT(*) FROM film_likes WHERE film_id = ? AND user_id = ?";
         int count = jdbc.queryForObject(checkSql, Integer.class, filmId, userId);
 
@@ -104,26 +156,27 @@ public class FilmRepository {
         jdbc.update(insertSql, filmId, userId);
     }
 
-    public void deleteLike(Long filmId, Long userId) {
-        String filmCheckSql = "SELECT COUNT(*) FROM films WHERE id = ?";
-        int filmCount = jdbc.queryForObject(filmCheckSql, Integer.class, filmId);
+        public void deleteLike(Long filmId, Long userId) {
+            String filmCheckSql = "SELECT COUNT(*) FROM films WHERE id = ?";
+            int filmCount = jdbc.queryForObject(filmCheckSql, Integer.class, filmId);
 
-        if (filmCount == 0) {
-            throw new NotFoundException("Фильм с ID " + filmId + " не найден");
+            if (filmCount == 0) {
+                throw new NotFoundException("Фильм с ID " + filmId + " не найден");
+            }
+
+            String likeCheckSql = "SELECT COUNT(*) FROM film_likes WHERE film_id = ? AND user_id = ?";
+            int likeCount = jdbc.queryForObject(likeCheckSql, Integer.class, filmId, userId);
+
+            if (likeCount == 0) {
+                throw new NotFoundException(
+                        "Пользователь с ID " + userId + " не ставил лайк фильму с ID " + filmId
+                );
+            }
+
+            String deleteSql = "DELETE FROM film_likes WHERE film_id = ? AND user_id = ?";
+            jdbc.update(deleteSql, filmId, userId);
         }
 
-        String likeCheckSql = "SELECT COUNT(*) FROM film_likes WHERE film_id = ? AND user_id = ?";
-        int likeCount = jdbc.queryForObject(likeCheckSql, Integer.class, filmId, userId);
-
-        if (likeCount == 0) {
-            throw new NotFoundException(
-                    "Пользователь с ID " + userId + " не ставил лайк фильму с ID " + filmId
-            );
-        }
-
-        String deleteSql = "DELETE FROM film_likes WHERE film_id = ? AND user_id = ?";
-        jdbc.update(deleteSql, filmId, userId);
-    }
 
     public List<Film> getPopularFilms(int count) {
         String sql = "SELECT f.*, COUNT(fl.user_id) as likes_count " +
@@ -133,6 +186,12 @@ public class FilmRepository {
                 "ORDER BY likes_count DESC, f.id " +
                 "LIMIT ?";
 
-        return jdbc.query(sql, mapper, count);
+        List<Film> films = jdbc.query(sql, mapper, count);
+
+        for (Film film : films) {
+            film.setGenres(loadGenresForFilm(film.getId()));
+            film.setLikes(loadLikesForFilm(film.getId()));
+        }
+        return films;
     }
 }

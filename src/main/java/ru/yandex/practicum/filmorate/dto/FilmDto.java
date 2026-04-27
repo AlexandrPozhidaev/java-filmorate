@@ -2,33 +2,36 @@ package ru.yandex.practicum.filmorate.dto;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 public class FilmDto {
+
+    private Long id;
+
     @NotBlank(message = "Название не может быть пустым")
-    @Size(min = 1, max = 100, message = "Название должно быть от 1 до 100 символов")
+    @Size(max = 100, message = "Название должно быть от 1 до 100 символов")
     private String name;
 
     @Size(max = 200, message = "Максимальная длина описания - 200 символов")
-    @NotNull(message = "Описание не может быть null")
     private String description;
 
-    @NotNull(message = "Дата выпуска обязательна")
     @PastOrPresent(message = "Дата выпуска не может быть в будущем")
-    @FutureOrPresent(message = "Дата выпуска не может быть слишком далёким прошлым")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    @NotNull(message = "Дата выпуска обязательна")
     private LocalDate releaseDate;
 
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private Long duration;
 
-    @NotNull(message = "Рейтинг MPAA обязателен")
-    private MpaDto mpa;
+    private Set<Long> likes = new HashSet<>();
 
-    @NotEmpty(message = "Фильм должен иметь хотя бы один жанр")
-    @Size(max = 5, message = "Фильм не может иметь более 5 жанров")
-    private List<GenreDto> genre;
+    private Set<Long> mpa = new HashSet<>();
+
+    private Set<Long> genres = new HashSet<>();
 }
 

@@ -10,7 +10,10 @@ import java.util.List;
 public class GenreMapper {
     public GenreDto toDto(Genre genre) {
         if (genre == null) return null;
-        return new GenreDto();
+        GenreDto dto = new GenreDto();
+        dto.setId(genre.getId());
+        dto.setName(genre.getName());
+        return dto;
     }
 
     public List<GenreDto> toDtoList(List<Genre> genreList) {

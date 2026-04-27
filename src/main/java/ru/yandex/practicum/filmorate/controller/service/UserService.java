@@ -43,7 +43,9 @@ public class UserService {
 
     public UserDto update(UserDto dto) throws UserNotFoundException {
         log.info("Начато обновление пользователя {}", dto);
-
+        if (dto.getId() == null) {
+            throw new IllegalArgumentException("ID пользователя не может быть null");
+        }
         User existingUser = userRepository.getById(dto.getId())
                 .orElseThrow(() -> new NotFoundException("Пользователь с ID " + dto.getId() + " не найден"));
 
@@ -67,8 +69,7 @@ public class UserService {
         return UserMapper.mapToUserDto(user);
     }
 
-    public void addFriend(Long userId, Long friendId) {
-        log.info("Пользователь с ID {} добавляет в друзья пользователя с ID {}", userId, friendId);
+    public void addFriend(Long userId, Long friendId) throws UserNotFoundException {
         if (userId == null || friendId == null) {
             throw new IllegalArgumentException("ID пользователей не могут быть null");
         }
@@ -76,15 +77,15 @@ public class UserService {
             throw new IllegalArgumentException("Пользователь не может добавить себя в друзья");
         }
 
-        userRepository.getById(userId)
-                .orElseThrow(() -> new NotFoundException(
-                        "Пользователь с ID " + userId + " не найден"));
-        userRepository.getById(friendId)
-                .orElseThrow(() -> new NotFoundException(
-                        "Пользователь с ID " + friendId + " не существует или недоступен"));
+        User user = userRepository.getById(userId)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + userId + " не найден"));
+        User friend = userRepository.getById(friendId)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + friendId + " не найден"));
 
+        log.info("Пользователь с ID {} добавляет в друзья пользователя с ID {}", userId, friendId);
         userRepository.addFriend(userId, friendId);
     }
+
 
     public boolean deleteFriend(Long userId, Long friendId) {
         log.info("Пользователь с ID {} удаляет из друзей пользователя с ID {}", userId, friendId);
@@ -125,13 +126,11 @@ public class UserService {
         if (dto.getEmail() != null) {
             existingUser.setEmail(dto.getEmail());
         }
-        if (dto.getLogin() != null) {
+        if (dto.getLogin() != null && !dto.getLogin().trim().isEmpty()) {
             existingUser.setLogin(dto.getLogin());
         }
         if (dto.getName() != null && !dto.getName().trim().isEmpty()) {
             existingUser.setName(dto.getName());
-        } else {
-            existingUser.setName(existingUser.getLogin());
         }
         if (dto.getBirthday() != null) {
             existingUser.setBirthday(dto.getBirthday());

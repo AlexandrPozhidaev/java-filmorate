@@ -49,7 +49,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}/friends/{friendId}")
-    public ResponseEntity<Void> addFriend(@PathVariable Long id, @PathVariable Long friendId) {
+    public ResponseEntity<Void> addFriend(@PathVariable Long id, @PathVariable Long friendId) throws UserNotFoundException {
         log.info("Запрос на добавление в друзья: пользователь {} добавляет пользователя {}", id, friendId);
         service.addFriend(id, friendId);
         return ResponseEntity.noContent().build();
