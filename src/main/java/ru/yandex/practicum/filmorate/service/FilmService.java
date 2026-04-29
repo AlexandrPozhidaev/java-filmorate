@@ -28,11 +28,21 @@ public class FilmService {
 
 
     public FilmDto create(FilmDto dto) {
-        validateFilmDto(dto);
-        Film film = FilmMapper.toFilm(dto);
-        log.info("Создание фильма: {}", film);
-        Film createdFilm = filmRepository.create(film);
-        return FilmMapper.mapToFilmDto(createdFilm);
+        try {
+            validateFilmDto(dto);
+            log.info("Валидация пройдена для DTO: {}", dto);
+
+            Film film = FilmMapper.toFilm(dto);
+            log.info("Преобразование в модель завершено: {}", film);
+
+            Film createdFilm = filmRepository.create(film);
+            log.info("Фильм создан в БД с ID: {}", createdFilm.getId());
+
+            return FilmMapper.mapToFilmDto(createdFilm);
+        } catch (Exception e) {
+            log.error("Ошибка при создании фильма: ", e);
+            throw e;
+        }
     }
 
     private void validateFilmDto(FilmDto dto) {

@@ -28,7 +28,7 @@ public class FilmRepository {
     private final GenreRepository genreRepository;
 
     public Film create(Film film) {
-        String sqlQuery = "INSERT INTO films (name, description, release_date, duration, mpa_id) " +
+        String sqlQuery = "INSERT INTO films (name, description, RELEASE_DATE, duration, mpa_id) " +
                 "VALUES (?, ?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -57,9 +57,9 @@ public class FilmRepository {
     }
 
     private void updateFilmLikes(Long filmId, Set<Long> userIds) {
-        jdbc.update("DELETE FROM film_likes WHERE film_id = ?", filmId);
+        jdbc.update("DELETE FROM likes WHERE film_id = ?", filmId);
         for (Long userId : userIds) {
-            jdbc.update("INSERT INTO film_likes (film_id, user_id) VALUES (?, ?)", filmId, userId);
+            jdbc.update("INSERT INTO likes (film_id, user_id) VALUES (?, ?)", filmId, userId);
         }
     }
 
@@ -90,9 +90,9 @@ public class FilmRepository {
     }
 
     private void updateFilmGenres(Long filmId, Set<Long> genreIds) {
-        jdbc.update("DELETE FROM film_genres WHERE film_id = ?", filmId);
+        jdbc.update("DELETE FROM genres WHERE film_id = ?", filmId);
         for (Long genreId : genreIds) {
-            jdbc.update("INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)", filmId, genreId);
+            jdbc.update("INSERT INTO genres (film_id, genre_id) VALUES (?, ?)", filmId, genreId);
         }
     }
 
@@ -114,26 +114,26 @@ public class FilmRepository {
     }
 
     private Set<Long> loadGenresForFilm(Long filmId) {
-        String sql = "SELECT genre_id FROM film_genres WHERE film_id = ?";
+        String sql = "SELECT genre_id FROM genres WHERE film_id = ?";
         List<Long> genres = jdbc.queryForList(sql, Long.class, filmId);
         return new HashSet<>(genres);
     }
 
     private Set<Long> loadLikesForFilm(Long filmId) {
-        String sql = "SELECT user_id FROM film_likes WHERE film_id = ?";
+        String sql = "SELECT user_id FROM likes WHERE film_id = ?";
         List<Long> likes = jdbc.queryForList(sql, Long.class, filmId);
         return new HashSet<>(likes);
     }
 
     public void addLike(Long filmId, Long userId) {
-        String checkSql = "SELECT COUNT(*) FROM film_likes WHERE film_id = ? AND user_id = ?";
+        String checkSql = "SELECT COUNT(*) FROM likes WHERE film_id = ? AND user_id = ?";
         int count = jdbc.queryForObject(checkSql, Integer.class, filmId, userId);
 
         if (count > 0) {
             throw new RuntimeException("Пользователь ID " + userId + " уже поставил лайк фильму ID " + filmId);
         }
 
-        String insertSql = "INSERT INTO film_likes (film_id, user_id) VALUES (?, ?)";
+        String insertSql = "INSERT INTO likes (film_id, user_id) VALUES (?, ?)";
         jdbc.update(insertSql, filmId, userId);
     }
 
@@ -145,7 +145,7 @@ public class FilmRepository {
                 throw new NotFoundException("Фильм с ID " + filmId + " не найден");
             }
 
-            String likeCheckSql = "SELECT COUNT(*) FROM film_likes WHERE film_id = ? AND user_id = ?";
+            String likeCheckSql = "SELECT COUNT(*) FROM likes WHERE film_id = ? AND user_id = ?";
             int likeCount = jdbc.queryForObject(likeCheckSql, Integer.class, filmId, userId);
 
             if (likeCount == 0) {
@@ -154,7 +154,7 @@ public class FilmRepository {
                 );
             }
 
-            String deleteSql = "DELETE FROM film_likes WHERE film_id = ? AND user_id = ?";
+            String deleteSql = "DELETE FROM likes WHERE film_id = ? AND user_id = ?";
             jdbc.update(deleteSql, filmId, userId);
         }
 

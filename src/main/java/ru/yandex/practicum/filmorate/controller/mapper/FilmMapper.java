@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
 import ru.yandex.practicum.filmorate.model.Film;
 
+import java.util.Collections;
+
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class FilmMapper {
@@ -22,7 +24,11 @@ public final class FilmMapper {
         dto.setReleaseDate(film.getReleaseDate());
         dto.setDuration(film.getDuration());
         dto.setMpa(film.getMpa());
-        dto.setGenres(GenreMapper.toGenreDto(film.getGenres()));
+        if (dto.getGenres() != null) {
+            film.setGenres(GenreMapper.toGenres(dto.getGenres()));
+        } else {
+            film.setGenres(Collections.emptySet());
+        }
         dto.setLikes(film.getLikes());
 
         return dto;
