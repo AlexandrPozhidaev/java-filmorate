@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.controller.service;
+package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -6,14 +6,14 @@ import ru.yandex.practicum.filmorate.dal.GenreRepository;
 import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
 import ru.yandex.practicum.filmorate.model.Genre;
 
-import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class GenreService {
     private final GenreRepository genreRepository;
 
-    public List<Genre> getAllGenres() {
+    public Set<Genre> getAllGenres() {
         return genreRepository.findAll();
     }
 

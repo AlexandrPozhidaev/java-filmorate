@@ -10,7 +10,7 @@ import ru.yandex.practicum.filmorate.model.User;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class UserMapper {
 
-    public static UserDto mapToUserDto(User user) {
+    public static UserDto toUserDto(User user) {
         UserDto dto = new UserDto();
         dto.setId(user.getId());
         dto.setName(user.getName());

@@ -6,8 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
 import ru.yandex.practicum.filmorate.model.Film;
 
-import java.util.HashSet;
-
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class FilmMapper {
@@ -23,18 +21,9 @@ public final class FilmMapper {
         dto.setDescription(film.getDescription());
         dto.setReleaseDate(film.getReleaseDate());
         dto.setDuration(film.getDuration());
-
-        if (film.getMpa() != null) {
-            dto.setMpa(new HashSet<>(film.getMpa()));
-        } else {
-            dto.setMpa(new HashSet<>());
-        }
-
-        if (film.getGenres() != null) {
-            dto.setGenres(new HashSet<>(film.getGenres()));
-        } else {
-            dto.setGenres(new HashSet<>());
-        }
+        dto.setMpa(film.getMpa());
+        dto.setGenres(GenreMapper.toGenreDto(film.getGenres()));
+        dto.setLikes(film.getLikes());
 
         return dto;
     }
@@ -53,48 +42,10 @@ public final class FilmMapper {
         film.setDescription(dto.getDescription());
         film.setReleaseDate(dto.getReleaseDate());
         film.setDuration(dto.getDuration());
-
-        // Копируем MPA ID
-        if (dto.getMpa() != null) {
-            film.setMpa(new HashSet<>(dto.getMpa()));
-        } else {
-            film.setMpa(new HashSet<>());
-        }
-
-        // Копируем жанры ID
-        if (dto.getGenres() != null) {
-            film.setGenres(new HashSet<>(dto.getGenres()));
-        } else {
-            film.setGenres(new HashSet<>());
-        }
-
-        film.setLikes(new HashSet<>()); // likes не копируем из DTO
+        film.setMpa(dto.getMpa());
+        film.setGenres(GenreMapper.toGenres(dto.getGenres()));
+        film.setLikes(dto.getLikes());
 
         return film;
-    }
-
-    public static void updateFilmFromDto(FilmDto dto, Film film) {
-        if (dto == null || film == null) {
-            return;
-        }
-
-        if (dto.getName() != null) {
-            film.setName(dto.getName());
-        }
-        if (dto.getDescription() != null) {
-            film.setDescription(dto.getDescription());
-        }
-        if (dto.getReleaseDate() != null) {
-            film.setReleaseDate(dto.getReleaseDate());
-        }
-        if (dto.getDuration() != null) {
-            film.setDuration(dto.getDuration());
-        }
-        if (dto.getMpa() != null) {
-            film.setMpa(new HashSet<>(dto.getMpa()));
-        }
-        if (dto.getGenres() != null) {
-            film.setGenres(new HashSet<>(dto.getGenres()));
-        }
     }
 }

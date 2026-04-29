@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.controller.service;
+package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,9 +36,9 @@ public class UserService {
             user.setName(user.getLogin());
         }
 
-        User createdUser = userRepository.create(user);
+        User createdUser = userRepository.createUser(user);
         log.debug("Пользователь создан, ID: {}, логин: {}", createdUser.getId(), createdUser.getLogin());
-        return UserMapper.mapToUserDto(createdUser);
+        return UserMapper.toUserDto(createdUser);
     }
 
     public UserDto update(UserDto dto) throws UserNotFoundException {
@@ -53,20 +53,20 @@ public class UserService {
 
         User updatedUser = userRepository.update(existingUser);
         log.info("Пользователь с ID {} успешно обновлён, новый логин: {}", updatedUser.getId(), updatedUser.getLogin());
-        return UserMapper.mapToUserDto(updatedUser);
+        return UserMapper.toUserDto(updatedUser);
     }
 
     public List<UserDto> getAllUsers() {
         return userRepository.getAllUsers()
                 .stream()
-                .map(UserMapper::mapToUserDto)
+                .map(UserMapper::toUserDto)
                 .collect(Collectors.toList());
     }
 
     public UserDto getUserById(Long id) {
         User user = userRepository.getById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с ID " + id + " не найден"));
-        return UserMapper.mapToUserDto(user);
+        return UserMapper.toUserDto(user);
     }
 
     public void addFriend(Long userId, Long friendId) throws UserNotFoundException {
@@ -110,7 +110,7 @@ public class UserService {
         log.info("Поиск общих друзей для пользователей с ID: {} и {}", userId1, userId2);
         List<User> commonFriends = userRepository.getCommonFriends(userId1, userId2);
         return commonFriends.stream()
-                .map(UserMapper::mapToUserDto)
+                .map(UserMapper::toUserDto)
                 .collect(Collectors.toList());
     }
 
@@ -118,7 +118,7 @@ public class UserService {
         log.debug("Загружаем друзей для пользователя с ID: {}", id);
         List<User> friends = userRepository.getFriends(id);
         return friends.stream()
-                .map(UserMapper::mapToUserDto)
+                .map(UserMapper::toUserDto)
                 .collect(Collectors.toList());
     }
 

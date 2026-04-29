@@ -4,9 +4,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.Genre;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Repository
@@ -18,11 +16,12 @@ public class GenreRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public List<Genre> findAll() {
+    public Set<Genre> findAll() {
         String sql = "SELECT id, name FROM genres ORDER BY id";
-        return jdbcTemplate.query(sql, (rs, rowNum) ->
+        List<Genre> genres = jdbcTemplate.query(sql, (rs, rowNum) ->
                 new Genre(rs.getLong("id"), rs.getString("name"))
         );
+        return new HashSet<>(genres);
     }
 
     public Optional<Genre> findById(Long id) {
@@ -37,9 +36,9 @@ public class GenreRepository {
         }
     }
 
-    public List<Genre> findAllById(List<Long> genreIds) {
+    public Set<Genre> findAllById(Set<Long> genreIds) {
         if (genreIds == null || genreIds.isEmpty()) {
-            return List.of();
+            return Set.of();
         }
 
         String placeholders = genreIds.stream()
@@ -49,9 +48,10 @@ public class GenreRepository {
 
         List<Object> parameters = new ArrayList<>(genreIds);
 
-        return jdbcTemplate.query(sql,
+        List<Genre> genres = jdbcTemplate.query(sql,
                 (rs, rowNum) -> new Genre(rs.getLong("id"), rs.getString("name")),
                 parameters.toArray()
         );
+        return new HashSet<>(genres);
     }
 }

@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.controller.service;
+package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +41,6 @@ public class FilmService {
         if (dto.getReleaseDate().isBefore(minReleaseDate)) {
             throw new ValidationException("Дата выпуска не может быть раньше 28.12.1895");
         }
-
     }
 
     public FilmDto update(FilmDto dto) {

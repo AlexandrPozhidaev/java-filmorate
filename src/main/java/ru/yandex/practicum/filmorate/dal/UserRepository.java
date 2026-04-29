@@ -10,7 +10,6 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dal.mappers.UserRowMapper;
 import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
@@ -28,7 +27,7 @@ public class UserRepository {
     private final JdbcTemplate jdbc;
     private final UserRowMapper mapper;
 
-    public User create(User user) {
+    public User createUser(User user) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         log.debug("Сохраняем пользователя: id={}, login={}", user.getId(), user.getLogin());
         jdbc.update(connection -> {
@@ -49,9 +48,9 @@ public class UserRepository {
     }
 
     public Optional<User> getById(Long id) {
-        String sql = "SELECT * FROM users WHERE id = ?";
+        String sqlQuery = "SELECT * FROM users WHERE id = ?";
         try {
-            User user = jdbc.queryForObject(sql, new UserRowMapper(), id);
+            User user = jdbc.queryForObject(sqlQuery, new UserRowMapper(), id);
             return Optional.of(user);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
@@ -99,13 +98,13 @@ public class UserRepository {
     }
 
     public List<User> getAllUsers() {
-        String query = "SELECT * FROM users";
-        return jdbc.query(query, mapper);
+        String sqlQuery = "SELECT * FROM users";
+        return jdbc.query(sqlQuery, mapper);
     }
 
     public void addFriend(Long userId, Long friendId) {
-        String sql = "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)";
-        int rowsAffected = jdbc.update(sql, userId, friendId);
+        String sqlQuery = "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)";
+        int rowsAffected = jdbc.update(sqlQuery, userId, friendId);
 
         if (rowsAffected == 0) {
             throw new EntityNotFoundException("Не удалось добавить дружбу между пользователями " +
@@ -119,63 +118,23 @@ public class UserRepository {
         return rowsAffected > 0; // true — если запись была, false — если её не было
     }
 
-
-    public List<User> getCommonFriends(Long userId1, Long userId2) {
-        if (userId1 == null || userId2 == null) {
-            throw new IllegalArgumentException("ID пользователей не могут быть null");
-        }
-
-        String checkUser1 = "SELECT COUNT(*) FROM users WHERE id = ?";
-        int user1Exists = jdbc.queryForObject(checkUser1, Integer.class, userId1);
-        if (user1Exists == 0) {
-            throw new NotFoundException("Пользователь с ID " + userId1 + " не найден");
-        }
-
-        String checkUser2 = "SELECT COUNT(*) FROM users WHERE id = ?";
-        int user2Exists = jdbc.queryForObject(checkUser2, Integer.class, userId2);
-        if (user2Exists == 0) {
-            throw new NotFoundException("Пользователь с ID " + userId2 + " не найден");
-        }
-
-        String sql = """
-                    SELECT u.id, u.name, u.email, u.login, u.birthday
-                    FROM users u
-                    WHERE u.id IN (
-                        SELECT f1.friend_id
-                        FROM friendships f1
-                        WHERE f1.user_id = ?
-                    )
-                    AND u.id IN (
-                        SELECT f2.friend_id
-                        FROM friendships f2
-                        WHERE f2.user_id = ?
-                    )
-                    ORDER BY u.name
+    public List<User> getFriends(Long userId) {
+        final String sqlQuery = """
+                    SELECT * from users, friends
+                    WHERE users.id = friends.friend_id and friends.user_id = ?
                 """;
 
-        return jdbc.query(sql, mapper, userId1, userId2);
+        return jdbc.query(sqlQuery, mapper, userId);
     }
 
-    public List<User> getFriends(Long userId) {
-        if (userId == null) {
-            throw new IllegalArgumentException("ID пользователя не может быть null");
-        }
-
-        String checkUser = "SELECT COUNT(*) FROM users WHERE id = ?";
-        int userExists = jdbc.queryForObject(checkUser, Integer.class, userId);
-        if (userExists == 0) {
-            throw new NotFoundException("Пользователь с ID " + userId + " не найден");
-        }
-
-        String sql = """
-                    SELECT u.id, u.name, u.email, u.login, u.birthday
-                    FROM users u
-                    JOIN friendships f ON u.id = f.friend_id
-                    WHERE f.user_id = ?
-                    ORDER BY u.name
+    public List<User> getCommonFriends(Long userId, Long otherId) {
+        String sqlQuery = """
+                SELECT * FROM users u, friends f, friends o
+                WHERE u.id = f.friend_id and u.id = o.friend_id and f.user_id = ? and o.user_id = ?
+                f.friend
                 """;
 
-        return jdbc.query(sql, mapper, userId);
+        return jdbc.query(sqlQuery, mapper, userId, otherId);
     }
 
     public void deleteAll() {

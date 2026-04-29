@@ -52,7 +52,7 @@ class FilmorateApplicationTests {
                 new HashSet<>()
         );
         // Сохраняем и сохраняем ID созданного пользователя
-        testUser = userRepository.create(testUser);
+        testUser = userRepository.createUser(testUser);
     }
 
     @AfterEach

@@ -1,14 +1,21 @@
 package ru.yandex.practicum.filmorate.dto;
 
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
+@Builder
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class FilmDto {
 
     private Long id;
@@ -28,10 +35,12 @@ public class FilmDto {
     @Positive(message = "Продолжительность фильма должна быть положительным числом")
     private Long duration;
 
+    @Builder.Default
     private Set<Long> likes = new HashSet<>();
 
-    private Set<Long> mpa = new HashSet<>();
+    private Mpa mpa;
 
-    private Set<Long> genres = new HashSet<>();
+    @Builder.Default
+    private Set<GenreDto> genres = new HashSet<>();
 }
 

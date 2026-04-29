@@ -7,11 +7,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.filmorate.controller.mapper.GenreMapper;
-import ru.yandex.practicum.filmorate.controller.service.GenreService;
 import ru.yandex.practicum.filmorate.dto.GenreDto;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.service.GenreService;
 
-import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/genres")
@@ -21,16 +21,17 @@ public class GenreController {
     private final GenreMapper genreMapper;
 
     @GetMapping
-    public ResponseEntity<List<GenreDto>> getAllGenres() {
-        List<Genre> genres = genreService.getAllGenres();
-        List<GenreDto> dtoList = genreMapper.toDtoList(genres);
-        return ResponseEntity.ok(dtoList);
+    public ResponseEntity<Set<GenreDto>> getAllGenres() {
+        Set<Genre> genres = genreService.getAllGenres();
+        Set<GenreDto> dtoSet = GenreMapper.toDto(genres); // Используем метод для коллекции
+        return ResponseEntity.ok(dtoSet);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<GenreDto> getGenreById(@PathVariable Long id) {
         Genre genre = genreService.getGenreById(id);
-        GenreDto dto = genreMapper.toDto(genre);
+        GenreDto dto = GenreMapper.toDto(genre); // Используем метод для одного объекта
         return ResponseEntity.ok(dto);
     }
 }
+

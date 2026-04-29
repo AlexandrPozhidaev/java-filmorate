@@ -9,46 +9,63 @@ import ru.yandex.practicum.filmorate.dal.mappers.FilmRowMapper;
 import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
 
-import java.sql.*;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.Types;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
 public class FilmRepository {
     private final JdbcTemplate jdbc;
     private final FilmRowMapper mapper;
+    private final GenreRepository genreRepository;
 
     public Film create(Film film) {
-        String query = "INSERT INTO films (name, description, releaseDate, duration) " +
-                "VALUES (?, ?, ?, ?)";
+        String sqlQuery = "INSERT INTO films (name, description, release_date, duration, mpa_id) " +
+                "VALUES (?, ?, ?, ?, ?)";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
-        int rowsAffected = jdbc.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1, film.getName());
-            ps.setString(2, film.getDescription());
-            if (film.getReleaseDate() != null) {
-                ps.setDate(3, java.sql.Date.valueOf(film.getReleaseDate()));
+        jdbc.update(connection -> {
+            PreparedStatement stmt = connection.prepareStatement(sqlQuery, new String[]{"id"});
+            stmt.setString(1, film.getName());
+            stmt.setString(2, film.getDescription());
+            stmt.setDate(3, Date.valueOf(film.getReleaseDate()));
+            stmt.setLong(4, film.getDuration());
+
+            if (film.getMpa() != null) {
+                stmt.setLong(5, film.getMpa().getId());
             } else {
-                ps.setNull(3, Types.DATE);
+                stmt.setNull(5, Types.BIGINT);
             }
-            ps.setLong(4, film.getDuration());
-            return ps;
+            return stmt;
         }, keyHolder);
 
         Long generatedId = keyHolder.getKey().longValue();
         film.setId(generatedId);
 
+        // Сохраняем likes отдельно
+        updateFilmLikes(generatedId, film.getLikes());
+
         return film;
+    }
+
+    private void updateFilmLikes(Long filmId, Set<Long> userIds) {
+        jdbc.update("DELETE FROM film_likes WHERE film_id = ?", filmId);
+        for (Long userId : userIds) {
+            jdbc.update("INSERT INTO film_likes (film_id, user_id) VALUES (?, ?)", filmId, userId);
+        }
     }
 
     public Film update(Film film) {
         String query = "UPDATE films " +
-                "SET name = ?, description = ?, releaseDate = ?, duration = ? " +
+                "SET name = ?, description = ?, release_date = ?, duration = ? " +
                 "WHERE id = ?";
 
         int rowsAffected = jdbc.update(query,
@@ -63,7 +80,10 @@ public class FilmRepository {
             throw new EntityNotFoundException("Фильм с ID " + film.getId() + " не найден");
         }
 
-        updateFilmGenres(film.getId(), film.getGenres());
+        Set<Genre> genres = new HashSet<>(genreRepository.findAllById(film.getGenres().stream()
+                .map(Genre::getId)
+                .collect(Collectors.toSet())));
+
 
         String selectSql = "SELECT * FROM films WHERE id = ?";
         return jdbc.queryForObject(selectSql, mapper, film.getId());
@@ -80,7 +100,7 @@ public class FilmRepository {
         String sql = "SELECT f.*, f.mpa_id as mpa_id " +
                 "FROM films f " +
                 "ORDER BY f.id";
-        return jdbc.query(sql, (rs, rowNum) -> mapRowWithMpa(rs));
+        return jdbc.query(sql, mapper); // используем готовый mapper
     }
 
 
@@ -88,14 +108,9 @@ public class FilmRepository {
         String sql = "SELECT f.*, f.mpa_id as mpa_id " +
                 "FROM films f " +
                 "WHERE f.id = ?";
-        try {
-            Film film = jdbc.queryForObject(sql, (rs, rowNum) -> mapRowWithMpa(rs), id);
-            film.setGenres(loadGenresForFilm(id));
-            film.setLikes(loadLikesForFilm(id));
-            return Optional.of(film);
-        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+
             return Optional.empty();
-        }
+
     }
 
     private Set<Long> loadGenresForFilm(Long filmId) {
@@ -109,40 +124,6 @@ public class FilmRepository {
         List<Long> likes = jdbc.queryForList(sql, Long.class, filmId);
         return new HashSet<>(likes);
     }
-
-    private Film mapRowWithMpa(ResultSet resultSet) throws SQLException {
-        Film film = new Film();
-        film.setId(resultSet.getLong("id"));
-        film.setName(resultSet.getString("name"));
-        film.setDescription(resultSet.getString("description"));
-
-        java.sql.Date sqlDate = resultSet.getDate("releaseDate");
-        if (sqlDate != null) {
-            film.setReleaseDate(sqlDate.toLocalDate());
-        } else {
-            film.setReleaseDate(null);
-        }
-
-        long duration = resultSet.getLong("duration");
-        if (resultSet.wasNull()) {
-            film.setDuration(0L);
-        } else {
-            film.setDuration(duration);
-        }
-
-        Long mpaId = resultSet.getLong("mpa_id");
-        if (!resultSet.wasNull()) {
-            film.setMpa(Set.of(mpaId));
-        } else {
-            film.setMpa(new HashSet<>());
-        }
-
-        film.setGenres(new HashSet<>());
-        film.setLikes(new HashSet<>());
-
-        return film;
-    }
-
 
     public void addLike(Long filmId, Long userId) {
         String checkSql = "SELECT COUNT(*) FROM film_likes WHERE film_id = ? AND user_id = ?";
@@ -188,10 +169,6 @@ public class FilmRepository {
 
         List<Film> films = jdbc.query(sql, mapper, count);
 
-        for (Film film : films) {
-            film.setGenres(loadGenresForFilm(film.getId()));
-            film.setLikes(loadLikesForFilm(film.getId()));
-        }
         return films;
     }
 }

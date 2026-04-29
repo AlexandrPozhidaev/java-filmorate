@@ -3,7 +3,6 @@ package ru.yandex.practicum.filmorate.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import ru.yandex.practicum.filmorate.model.User;
-import ru.yandex.practicum.filmorate.model.UsersFriendship;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -28,5 +27,5 @@ public class UserDto {
     @Past(message = "Дата рождения не может быть в будущем", groups = {User.OnCreate.class, User.OnUpdate.class})
     private LocalDate birthday;
 
-    private Set<UsersFriendship> friendships = new HashSet<>();
+    private Set<Long> friendIds = new HashSet<>();
 }
