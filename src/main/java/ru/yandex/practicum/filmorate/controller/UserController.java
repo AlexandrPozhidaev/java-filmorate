@@ -29,7 +29,11 @@ public class UserController {
     @PutMapping
     public UserDto update(@Validated(User.OnUpdate.class) @RequestBody UserDto dto) throws UserNotFoundException {
         log.info("Начато обновление пользователя {}", dto);
-        return service.update(dto);
+        return service.update(dto)
+                .orElseThrow(() -> new UserNotFoundException(
+                        "Пользователь с ID " + dto.getId() + " не найден",
+                        dto.getId()
+                ));
     }
 
     @GetMapping
@@ -40,7 +44,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public UserDto getById(@PathVariable Long id) {
+    public UserDto getById(@PathVariable Long id) throws UserNotFoundException {
         log.info("Запрошены данные пользователя с ID {}", id);
         return service.getUserById(id);
     }
@@ -52,9 +56,9 @@ public class UserController {
     }
 
     @DeleteMapping("/{userId}/friends/{friendId}")
-    public void deleteFriend(@PathVariable Long id, @PathVariable Long friendId) {
-        log.info("Запрос на удаление из друзей: пользователь {} удаляет пользователя {}", id, friendId);
-        service.deleteFriend(id, friendId);
+    public void deleteFriend(@PathVariable Long userId, @PathVariable Long friendId) throws UserNotFoundException {
+        log.info("Запрос на удаление из друзей: пользователь {} удаляет пользователя {}", userId, friendId);
+        service.deleteFriend(userId, friendId);
     }
 
     @GetMapping("/{id}/friends")
@@ -70,5 +74,4 @@ public class UserController {
         final List<UserDto> friends = service.getCommonFriends(id, otherId);
         return friends;
     }
-
 }

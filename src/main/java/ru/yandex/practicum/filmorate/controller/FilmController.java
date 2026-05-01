@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
+import ru.yandex.practicum.filmorate.exceptions.ErrorResponse;
+import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.List;
@@ -21,21 +23,34 @@ public class FilmController {
     private final FilmService service;
 
     @PostMapping
-    public ResponseEntity<FilmDto> create(@Valid @RequestBody FilmDto filmDto) {
-        FilmDto createdFilm = service.create(filmDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdFilm);
+    public ResponseEntity<?> create(@RequestBody @Valid FilmDto dto) {
+        try {
+            FilmDto created = service.create(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        } catch (ValidationException ex) {
+            if (ex.getMessage().contains("MPA с ID") && ex.getMessage().contains("не существует")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse(ex.getMessage(), 404));
+            }
+            throw ex;
+        }
     }
 
-    @PutMapping("/{id}")
-    public FilmDto update(@Valid @RequestBody FilmDto dto) {
-        log.info("Начато обновление фильма {}", dto);
-        return service.update(dto);
+    @PutMapping
+    public ResponseEntity<FilmDto> updateFilm(@RequestBody @Valid FilmDto dto) throws BadRequestException {
+        if (dto.getId() == null) {
+            throw new BadRequestException("ID фильма обязателен для обновления");
+        }
+
+        FilmDto updatedFilm = service.update(dto);
+        return ResponseEntity.ok(updatedFilm);
     }
 
     @GetMapping
-    public List<FilmDto> getAll() {
+    public ResponseEntity<List<FilmDto>> getAll() {
         log.info("Запрошен вывод всех фильмов");
-        return service.getAll();
+        List<FilmDto> films = service.getAll();
+        return ResponseEntity.status(HttpStatus.OK).body(films);
     }
 
     @GetMapping("/{id}")

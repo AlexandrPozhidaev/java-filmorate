@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS films (
     description VARCHAR(200),
     release_date DATE NOT NULL,
     duration INT NOT NULL CHECK (duration > 0),
-    mpa_id BIGINT,
+    mpa_id INT,
     FOREIGN KEY (mpa_id) REFERENCES mpa(id) ON DELETE SET NULL
 );
 
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS film_genres (
 );
 
 -- Таблица дружбы между пользователями
-CREATE TABLE IF NOT EXISTS friends (
+CREATE TABLE IF NOT EXISTS friendships (
   user_id INT NOT NULL REFERENCES users(id),
   friend_id INT NOT NULL REFERENCES users(id),  -- исправлено: убрано IS
   PRIMARY KEY (user_id, friend_id)

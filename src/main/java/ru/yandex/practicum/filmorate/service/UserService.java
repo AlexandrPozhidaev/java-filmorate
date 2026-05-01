@@ -1,15 +1,18 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.controller.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.dal.UserRepository;
+import ru.yandex.practicum.filmorate.dal.mappers.UserRowMapper;
 import ru.yandex.practicum.filmorate.dto.UserDto;
-import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
+import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -17,9 +20,13 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final JdbcTemplate jdbcTemplate;
+    private final UserRowMapper userRowMapper;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, JdbcTemplate jdbcTemplate, UserRowMapper userRowMapper) {
         this.userRepository = userRepository;
+        this.jdbcTemplate = jdbcTemplate;
+        this.userRowMapper = userRowMapper;
     }
 
     public UserDto create(UserDto dto) {
@@ -41,19 +48,30 @@ public class UserService {
         return UserMapper.toUserDto(createdUser);
     }
 
-    public UserDto update(UserDto dto) throws UserNotFoundException {
+    public Optional<UserDto> update(UserDto dto) {
         log.info("Начато обновление пользователя {}", dto);
-        if (dto.getId() == null) {
-            throw new IllegalArgumentException("ID пользователя не может быть null");
-        }
-        User existingUser = userRepository.getById(dto.getId())
-                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + dto.getId() + " не найден"));
 
+        Optional<User> existingUserOpt = userRepository.getById(dto.getId());
+        if (existingUserOpt.isEmpty()) {
+            log.warn("Попытка обновить несуществующего пользователя с ID: {}", dto.getId());
+            return Optional.empty();
+        }
+
+        User existingUser = existingUserOpt.get();
         applyUserUpdate(existingUser, dto);
 
-        User updatedUser = userRepository.update(existingUser);
-        log.info("Пользователь с ID {} успешно обновлён, новый логин: {}", updatedUser.getId(), updatedUser.getLogin());
-        return UserMapper.toUserDto(updatedUser);
+        try {
+            User updatedUser = userRepository.update(existingUser);
+            log.info("Пользователь с ID {} успешно обновлён, новый логин: {}",
+                    updatedUser.getId(), updatedUser.getLogin());
+            return Optional.of(UserMapper.toUserDto(updatedUser));
+        } catch (ValidationException e) {
+            log.error("Ошибка валидации при обновлении пользователя с ID {}", dto.getId(), e);
+            throw new IllegalArgumentException("Ошибка валидации: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Неожиданная ошибка при обновлении пользователя с ID {}", dto.getId(), e);
+            throw new RuntimeException("Внутренняя ошибка сервера", e);
+        }
     }
 
     public List<UserDto> getAllUsers() {
@@ -63,9 +81,12 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    public UserDto getUserById(Long id) {
+    public UserDto getUserById(Long id) throws UserNotFoundException {
         User user = userRepository.getById(id)
-                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + id + " не найден"));
+                .orElseThrow(() -> new UserNotFoundException(
+                        "Пользователь с ID " + id + " не найден",
+                        id
+                ));
         return UserMapper.toUserDto(user);
     }
 
@@ -77,17 +98,23 @@ public class UserService {
             throw new IllegalArgumentException("Пользователь не может добавить себя в друзья");
         }
 
-        User user = userRepository.getById(userId)
-                .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + userId + " не найден"));
-        User friend = userRepository.getById(friendId)
-                .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + friendId + " не найден"));
+        userRepository.getById(userId)
+                .orElseThrow(() -> new UserNotFoundException(
+                        "Пользователь с ID " + userId + " не найден",
+                        userId
+                ));
+        userRepository.getById(friendId)
+                .orElseThrow(() -> new UserNotFoundException(
+                        "Пользователь с ID " + friendId + " не найден",
+                        friendId
+                ));
 
         log.info("Пользователь с ID {} добавляет в друзья пользователя с ID {}", userId, friendId);
         userRepository.addFriend(userId, friendId);
     }
 
 
-    public boolean deleteFriend(Long userId, Long friendId) {
+    public boolean deleteFriend(Long userId, Long friendId) throws UserNotFoundException {
         log.info("Пользователь с ID {} удаляет из друзей пользователя с ID {}", userId, friendId);
         if (userId == null || friendId == null) {
             throw new IllegalArgumentException("ID пользователей не могут быть null");
@@ -97,9 +124,15 @@ public class UserService {
         }
 
         userRepository.getById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
+                .orElseThrow(() -> new UserNotFoundException(
+                        "Пользователь с ID " + userId + " не найден",
+                        userId
+                ));
         userRepository.getById(friendId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + friendId + " не найден"));
+                .orElseThrow(() -> new UserNotFoundException(
+                        "Пользователь с ID " + friendId + " не найден",
+                        friendId
+                ));
 
         boolean friendshipExisted = userRepository.deleteFriend(userId, friendId);
         log.info("Друг успешно удалён: {} → {}, дружба существовала: {}", userId, friendId, friendshipExisted);
@@ -116,7 +149,15 @@ public class UserService {
 
     public List<UserDto> getFriends(Long id) {
         log.debug("Загружаем друзей для пользователя с ID: {}", id);
+
+        if (!userRepository.existsById(id)) {
+            log.warn("Пользователь с ID {} не найден", id);
+            throw new UserNotFoundException("Пользователь с ID " + id + " не найден", id);
+        }
+
         List<User> friends = userRepository.getFriends(id);
+        log.info("Для пользователя {} найдено {} друзей", id, friends.size());
+
         return friends.stream()
                 .map(UserMapper::toUserDto)
                 .collect(Collectors.toList());

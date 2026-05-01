@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -12,12 +14,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.ErrorResponse;
-import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
-import ru.yandex.practicum.filmorate.exceptions.ValidationException;
+import ru.yandex.practicum.filmorate.exceptions.*;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,10 +26,31 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(ValidationException ex) {
+    public ResponseEntity<ErrorResponse> handleValidationException(ValidationException ex) {
         log.warn("Ошибка валидации: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(ex.getMessage()));
+        ErrorResponse error = new ErrorResponse(ex.getMessage(), 400);
+        return ResponseEntity.status(400).body(error);
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException ex) {
+        log.warn("Пользователь с ID {} не найден: {}", ex.getUserId(), ex.getMessage());
+        ErrorResponse error = new ErrorResponse(ex.getMessage(), 404);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFoundException(NotFoundException ex) {
+        log.warn("Ресурс не найден: {}", ex.getMessage());
+        ErrorResponse error = new ErrorResponse(ex.getMessage(), 404);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityException(DataIntegrityViolationException ex) {
+        log.error("Нарушение целостности данных: ", ex);
+        ErrorResponse error = new ErrorResponse("Ошибка данных: нарушены ограничения базы данных", 400);
+        return ResponseEntity.status(400).body(error);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -48,7 +67,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNotFound(EntityNotFoundException ex) {
         log.warn("Ресурс не найден: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse(ex.getMessage()));
+                .body(new ErrorResponse(ex.getMessage(), 400));
     }
 
     @ExceptionHandler(BadRequestException.class)
@@ -58,10 +77,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
-        log.error("Некорректный аргумент: ", ex);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", "Некорректные данные в запросе"));
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
+        ErrorResponse error = new ErrorResponse(ex.getMessage(), 400);
+        return ResponseEntity.status(400).body(error);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -69,24 +87,14 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException ex) {
         ErrorResponse errorResponse = new ErrorResponse(
                 "Некорректный формат запроса",
-                400,
-                Collections.singletonList("Ошибка парсинга JSON: " + ex.getMessage())
-        );
+                400);
         return ResponseEntity.badRequest().body(errorResponse);
     }
 
-    @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException ex) {
-        log.warn("Пользователь не найден: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse(ex.getMessage()));
-    }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, String>> handleInternalError(Exception e) {
-        Map<String, String> errorResponse = new HashMap<>();
-        errorResponse.put("error", "Внутренняя ошибка сервера");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    @ExceptionHandler(EmptyResultDataAccessException.class)
+    public ResponseEntity<ErrorResponse> handleEmptyResult(EmptyResultDataAccessException ex) {
+        ErrorResponse error = new ErrorResponse("Ресурс не найден", 404);
+        return ResponseEntity.status(404).body(error);
     }
 
     private String extractDetailedErrorMessage(HttpMessageNotReadableException ex) {
@@ -115,8 +123,20 @@ public class GlobalExceptionHandler {
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.toList());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse("Ошибки валидации: " + errors));
+                .body(new ErrorResponse("Ошибки валидации: " + errors, 400));
     }
 
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<ErrorResponse> handleDataAccessException(DataAccessException ex) {
+        log.error("Ошибка доступа к данным", ex);
+        ErrorResponse error = new ErrorResponse("Внутренняя ошибка сервера", 500);
+        return ResponseEntity.status(500).body(error);
+    }
 
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleAllExceptions(Exception ex) {
+        log.error("Неожиданное исключение при обработке запроса:", ex);
+        ErrorResponse error = new ErrorResponse("Внутренняя ошибка сервера", 500);
+        return ResponseEntity.status(500).body(error);
+    }
 }

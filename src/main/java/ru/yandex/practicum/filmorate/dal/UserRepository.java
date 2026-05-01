@@ -9,7 +9,6 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.dal.mappers.UserRowMapper;
-import ru.yandex.practicum.filmorate.exceptions.EntityNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
@@ -17,6 +16,7 @@ import ru.yandex.practicum.filmorate.model.User;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,6 +57,10 @@ public class UserRepository {
         }
     }
 
+    public boolean existsById(Long id) {
+        String sql = "SELECT COUNT(*) > 0 FROM users WHERE id = ?";
+        return jdbc.queryForObject(sql, Boolean.class, id);
+    }
 
     public User update(User user) throws UserNotFoundException {
         validateUser(user);
@@ -71,11 +75,15 @@ public class UserRepository {
         );
 
         if (rowsAffected == 0) {
-            throw new UserNotFoundException("Пользователь с ID " + user.getId() + " не найден");
+            throw new UserNotFoundException("Пользователь с ID " + user.getId() + " не найден", user.getId());
         }
 
-        return getById(user.getId()).orElseThrow(() ->
-                new UserNotFoundException("Пользователь с ID " + user.getId() + " не найден"));
+        // Получаем обновлённого пользователя напрямую из БД — без повторного выброса исключения
+        return getById(user.getId())
+                .orElseThrow(() -> new UserNotFoundException(
+                        "Пользователь с ID " + user.getId() + " не найден после обновления",
+                        user.getId()
+                ));
     }
 
     private void validateUser(User user) {
@@ -102,38 +110,49 @@ public class UserRepository {
         return jdbc.query(sqlQuery, mapper);
     }
 
-    public void addFriend(Long userId, Long friendId) {
-        String sqlQuery = "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)";
-        int rowsAffected = jdbc.update(sqlQuery, userId, friendId);
-
-        if (rowsAffected == 0) {
-            throw new EntityNotFoundException("Не удалось добавить дружбу между пользователями " +
-                    userId + " и " + friendId);
-        }
+    public void addFriend(Long user1_id, Long user2_id) {
+        String insertFriendship = "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)";
+        jdbc.update(insertFriendship, user1_id, user2_id);
     }
 
     public boolean deleteFriend(Long userId, Long friendId) {
         String deleteFriendship = "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
         int rowsAffected = jdbc.update(deleteFriendship, userId, friendId);
-        return rowsAffected > 0; // true — если запись была, false — если её не было
+        return rowsAffected > 0;
     }
 
     public List<User> getFriends(Long userId) {
-        final String sqlQuery = """
-                    SELECT * from users, friends
-                    WHERE users.id = friends.friend_id and friends.user_id = ?
-                """;
+        if (userId == null) {
+            log.warn("ID пользователя не может быть null");
+            return Collections.emptyList();
+        }
 
-        return jdbc.query(sqlQuery, mapper, userId);
+        final String sqlQuery = """
+        SELECT u.*
+        FROM users u
+        JOIN friendships f ON u.id = f.friend_id
+        WHERE f.user_id = ?
+        ORDER BY u.id
+    """;
+
+        try {
+            List<User> friends = jdbc.query(sqlQuery, mapper, userId);
+            return friends != null ? friends : Collections.emptyList();
+        } catch (EmptyResultDataAccessException e) {
+            log.debug("Для пользователя {} не найдено друзей", userId);
+            return Collections.emptyList();
+        }
     }
+
 
     public List<User> getCommonFriends(Long userId, Long otherId) {
         String sqlQuery = """
-                SELECT * FROM users u, friends f, friends o
-                WHERE u.id = f.friend_id and u.id = o.friend_id and f.user_id = ? and o.user_id = ?
-                f.friend
-                """;
-
+        SELECT u.*
+        FROM users u
+        JOIN friendships f1 ON u.id = f1.friend_id
+        JOIN friendships f2 ON u.id = f2.friend_id
+        WHERE f1.user_id = ? AND f2.user_id = ?
+    """;
         return jdbc.query(sqlQuery, mapper, userId, otherId);
     }
 

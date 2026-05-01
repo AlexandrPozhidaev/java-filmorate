@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.time.LocalDate;
@@ -27,9 +26,8 @@ public class FilmDto {
     @Size(max = 200, message = "Максимальная длина описания - 200 символов")
     private String description;
 
+    @NotNull(message = "Дата выпуска не может быть пустой")
     @PastOrPresent(message = "Дата выпуска не может быть в будущем")
-    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    @NotNull(message = "Дата выпуска обязательна")
     private LocalDate releaseDate;
 
     @Positive(message = "Продолжительность фильма должна быть положительным числом")

@@ -2,23 +2,24 @@ package ru.yandex.practicum.filmorate.dal;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.dal.mappers.GenreRowMapper;
 import ru.yandex.practicum.filmorate.model.Genre;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Repository
 public class GenreRepository {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbc;
+    private GenreRowMapper genreRowMapper;
 
     public GenreRepository(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+        this.jdbc = jdbcTemplate;
     }
 
     public Set<Genre> findAll() {
         String sql = "SELECT id, name FROM genres ORDER BY id";
-        List<Genre> genres = jdbcTemplate.query(sql, (rs, rowNum) ->
+        List<Genre> genres = jdbc.query(sql, (rs, rowNum) ->
                 new Genre(rs.getLong("id"), rs.getString("name"))
         );
         return new HashSet<>(genres);
@@ -27,7 +28,7 @@ public class GenreRepository {
     public Optional<Genre> findById(Long id) {
         String sql = "SELECT id, name FROM genres WHERE id = ?";
         try {
-            Genre genre = jdbcTemplate.queryForObject(sql,
+            Genre genre = jdbc.queryForObject(sql,
                     (rs, rowNum) -> new Genre(rs.getLong("id"), rs.getString("name")),
                     id);
             return Optional.ofNullable(genre);
@@ -36,22 +37,13 @@ public class GenreRepository {
         }
     }
 
-    public Set<Genre> findAllById(Set<Long> genreIds) {
-        if (genreIds == null || genreIds.isEmpty()) {
-            return Set.of();
-        }
+    public List<Genre> findAllById(Set<Long> ids) {
+        if (ids.isEmpty()) return Collections.emptyList();
 
-        String placeholders = genreIds.stream()
-                .map(id -> "?")
-                .collect(Collectors.joining(", "));
-        String sql = "SELECT id, name FROM genres WHERE id IN (" + placeholders + ") ORDER BY id";
+        String placeholders = String.join(",", Collections.nCopies(ids.size(), "?"));
+        String sql = "SELECT * FROM genres WHERE id IN (" + placeholders + ")";
 
-        List<Object> parameters = new ArrayList<>(genreIds);
-
-        List<Genre> genres = jdbcTemplate.query(sql,
-                (rs, rowNum) -> new Genre(rs.getLong("id"), rs.getString("name")),
-                parameters.toArray()
-        );
-        return new HashSet<>(genres);
+        return jdbc.query(sql, new GenreRowMapper(), ids.toArray());
     }
+
 }

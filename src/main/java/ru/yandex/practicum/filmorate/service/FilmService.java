@@ -7,14 +7,19 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.controller.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.dal.FilmRepository;
 import ru.yandex.practicum.filmorate.dal.GenreRepository;
+import ru.yandex.practicum.filmorate.dal.MpaRepository;
 import ru.yandex.practicum.filmorate.dal.UserRepository;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
+import ru.yandex.practicum.filmorate.dto.GenreDto;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,41 +30,66 @@ public class FilmService {
     private final FilmRepository filmRepository;
     private final GenreRepository genreRepository;
     private final UserRepository userRepository;
+    private final MpaRepository mpaRepository;
 
 
-    public FilmDto create(FilmDto dto) {
-        try {
-            validateFilmDto(dto);
-            log.info("Валидация пройдена для DTO: {}", dto);
+    public FilmDto create(FilmDto dto) throws ValidationException{
+        validateFilmDto(dto);
 
-            Film film = FilmMapper.toFilm(dto);
-            log.info("Преобразование в модель завершено: {}", film);
+        Mpa mpa = mpaRepository.findById(dto.getMpa().getId())
+                .orElseThrow(() -> new ValidationException(
+                        "MPA с ID " + dto.getMpa().getId() + " не существует"));
 
-            Film createdFilm = filmRepository.create(film);
-            log.info("Фильм создан в БД с ID: {}", createdFilm.getId());
+        if (dto.getGenres() != null && !dto.getGenres().isEmpty()) {
+            Set<Long> genreIds = dto.getGenres().stream()
+                    .map(GenreDto::getId)
+                    .collect(Collectors.toSet());
 
-            return FilmMapper.mapToFilmDto(createdFilm);
-        } catch (Exception e) {
-            log.error("Ошибка при создании фильма: ", e);
-            throw e;
+            List<Genre> existingGenres = genreRepository.findAllById(genreIds);
+            if (existingGenres.size() != genreIds.size()) {
+                throw new NotFoundException("Один или несколько жанров с ID " + genreIds + " не существуют");
+            }
         }
+
+        Film film = FilmMapper.toFilm(dto, mpa);
+        return FilmMapper.mapToFilmDto(filmRepository.create(film));
     }
 
     private void validateFilmDto(FilmDto dto) {
         LocalDate minReleaseDate = LocalDate.of(1895, 12, 28);
 
-        if (dto.getReleaseDate().isBefore(minReleaseDate)) {
-            throw new ValidationException("Дата выпуска не может быть раньше 28.12.1895");
+        if (dto.getReleaseDate() != null && dto.getReleaseDate().isBefore(minReleaseDate)) {
+            throw new ValidationException("Дата выпуска не может быть раньше " + minReleaseDate);
+        }
+        if (dto.getDuration() != null && dto.getDuration() <= 0) {
+            throw new ValidationException("Продолжительность фильма должна быть положительным числом");
         }
     }
 
     public FilmDto update(FilmDto dto) {
         validateFilmDto(dto);
 
-        Film film = FilmMapper.toFilm(dto);
-        log.info("Обновление фильма с ID: {}", film.getId());
+        Long filmId = dto.getId();
+        Film film = filmRepository.getById(filmId);
+        if (film == null) {
+            throw new NotFoundException("Фильм с ID " + filmId + " не найден");
+        }
 
-        Film updatedFilm = filmRepository.update(film);
+        Mpa mpa = mpaRepository.findById(dto.getMpa().getId())
+                .orElseThrow(() -> new ValidationException(
+                        "MPA с ID " + dto.getMpa().getId() + " не существует"));
+
+        if (dto.getGenres() != null && !dto.getGenres().isEmpty()) {
+            Set<Long> genreIds = dto.getGenres().stream()
+                    .map(GenreDto::getId)
+                    .collect(Collectors.toSet());
+            List<Genre> existingGenres = genreRepository.findAllById(genreIds);
+            if (existingGenres.size() != genreIds.size()) {
+                throw new NotFoundException("Один или несколько жанров с ID " + genreIds + " не существуют");
+            }
+        }
+
+        Film updatedFilm = filmRepository.update(FilmMapper.toFilm(dto, mpa));
         return FilmMapper.mapToFilmDto(updatedFilm);
     }
 
@@ -72,8 +102,10 @@ public class FilmService {
 
     public FilmDto getById(Long id) {
         log.info("Поиск фильма с ID: {}", id);
-        Film film = filmRepository.getById(id)
-                .orElseThrow(() -> new NotFoundException("Фильм с ID " + id + " не найден"));
+        Film film = filmRepository.getById(id);
+        if (film == null) {
+            throw new NotFoundException("Фильм с ID " + id + " не найден");
+        }
         return FilmMapper.mapToFilmDto(film);
     }
 
