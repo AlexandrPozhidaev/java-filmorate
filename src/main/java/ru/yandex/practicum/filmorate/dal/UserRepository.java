@@ -110,9 +110,9 @@ public class UserRepository {
         return jdbc.query(sqlQuery, mapper);
     }
 
-    public void addFriend(Long user1_id, Long user2_id) {
+    public void addFriend(Long userId, Long friendId) {
         String insertFriendship = "INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)";
-        jdbc.update(insertFriendship, user1_id, user2_id);
+        jdbc.update(insertFriendship, userId, friendId);
     }
 
     public boolean deleteFriend(Long userId, Long friendId) {
@@ -143,7 +143,6 @@ public class UserRepository {
             return Collections.emptyList();
         }
     }
-
 
     public List<User> getCommonFriends(Long userId, Long otherId) {
         String sqlQuery = """
