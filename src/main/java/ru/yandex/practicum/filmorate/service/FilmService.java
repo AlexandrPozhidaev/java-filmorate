@@ -32,8 +32,7 @@ public class FilmService {
     private final UserRepository userRepository;
     private final MpaRepository mpaRepository;
 
-
-    public FilmDto create(FilmDto dto) throws ValidationException{
+    public FilmDto create(FilmDto dto) throws ValidationException {
         validateFilmDto(dto);
 
         Mpa mpa = mpaRepository.findById(dto.getMpa().getId())
