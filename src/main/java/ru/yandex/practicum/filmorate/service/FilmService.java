@@ -3,12 +3,15 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.controller.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.dal.FilmRepository;
 import ru.yandex.practicum.filmorate.dal.GenreRepository;
 import ru.yandex.practicum.filmorate.dal.MpaRepository;
 import ru.yandex.practicum.filmorate.dal.UserRepository;
+import ru.yandex.practicum.filmorate.dal.mappers.GenreRowMapper;
 import ru.yandex.practicum.filmorate.dto.FilmDto;
 import ru.yandex.practicum.filmorate.dto.GenreDto;
 import ru.yandex.practicum.filmorate.exceptions.NotFoundException;
@@ -18,6 +21,7 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,8 +33,10 @@ public class FilmService {
 
     private final FilmRepository filmRepository;
     private final GenreRepository genreRepository;
+    private final GenreRowMapper genreRowMapper;
     private final UserRepository userRepository;
     private final MpaRepository mpaRepository;
+    private final JdbcTemplate jdbc;
 
     public FilmDto create(FilmDto dto) throws ValidationException {
         validateFilmDto(dto);
@@ -105,13 +111,16 @@ public class FilmService {
         if (film == null) {
             throw new NotFoundException("Фильм с ID " + id + " не найден");
         }
+
+        Set<Genre> genres = loadGenresForFilm(id);
+        film.setGenres(genres);
+
         return FilmMapper.mapToFilmDto(film);
     }
 
     public void addLike(Long filmId, Long userId) {
         log.info("Пользователь с ID {} поставил лайк фильму с ID {}", userId, filmId);
 
-        // Проверка существования пользователя
         userRepository.getById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
 
@@ -131,5 +140,17 @@ public class FilmService {
                 .collect(Collectors.toList());
     }
 
-
+    private Set<Genre> loadGenresForFilm(Long filmId) {
+        String sql = "SELECT g.id, g.name FROM genres g " +
+                "JOIN film_genres fg ON g.id = fg.genre_id " +
+                "WHERE fg.film_id = ?";
+        try {
+            List<Genre> genres = jdbc.query(sql, genreRowMapper, filmId);
+            log.debug("Загружено {} жанров для фильма ID={}", genres.size(), filmId);
+            return new HashSet<>(genres);
+        } catch (EmptyResultDataAccessException e) {
+            log.warn("Для фильма ID={} не найдено жанров", filmId);
+            return Set.of();
+        }
+    }
 }

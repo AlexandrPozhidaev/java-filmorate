@@ -25,7 +25,7 @@ public final class FilmMapper {
         dto.setReleaseDate(film.getReleaseDate());
         dto.setDuration(film.getDuration());
         dto.setMpa(film.getMpa());
-        if (film.getGenres() != null) {
+        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
             dto.setGenres(GenreMapper.toDto(film.getGenres()));
         } else {
             dto.setGenres(Collections.emptySet());
@@ -33,27 +33,6 @@ public final class FilmMapper {
         dto.setLikes(film.getLikes());
 
         return dto;
-    }
-
-    public static Film toFilm(FilmDto dto) {
-        if (dto == null) {
-            return null;
-        }
-
-        Film film = new Film();
-
-        if (dto.getId() != null) {
-            film.setId(dto.getId());
-        }
-        film.setName(dto.getName());
-        film.setDescription(dto.getDescription());
-        film.setReleaseDate(dto.getReleaseDate());
-        film.setDuration(dto.getDuration());
-        film.setMpa(dto.getMpa());
-        film.setGenres(GenreMapper.toGenres(dto.getGenres()));
-        film.setLikes(dto.getLikes());
-
-        return film;
     }
 
     public static Film toFilm(FilmDto dto, Mpa mpa) {
@@ -70,7 +49,7 @@ public final class FilmMapper {
         film.setDescription(dto.getDescription());
         film.setReleaseDate(dto.getReleaseDate());
         film.setDuration(dto.getDuration());
-        film.setMpa(mpa); // устанавливаем MPA из параметра метода
+        film.setMpa(mpa);
         film.setGenres(GenreMapper.toGenres(dto.getGenres()));
         film.setLikes(dto.getLikes());
 

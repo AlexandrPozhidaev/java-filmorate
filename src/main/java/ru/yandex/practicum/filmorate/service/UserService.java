@@ -113,7 +113,6 @@ public class UserService {
         userRepository.addFriend(userId, friendId);
     }
 
-
     public boolean deleteFriend(Long userId, Long friendId) throws UserNotFoundException {
         log.info("Пользователь с ID {} удаляет из друзей пользователя с ID {}", userId, friendId);
         if (userId == null || friendId == null) {

@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.dal.mappers;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -19,12 +18,12 @@ import java.util.List;
 import java.util.Set;
 
 @Component
+@Slf4j
 public class FilmRowMapper implements RowMapper<Film> {
-
-    private static final Logger log = LoggerFactory.getLogger(FilmRowMapper.class);
 
     private final JdbcTemplate jdbc;
     private final GenreRowMapper genreRowMapper;
+
 
     @Autowired
     public FilmRowMapper(JdbcTemplate jdbc, GenreRowMapper genreRowMapper) {
@@ -67,7 +66,6 @@ public class FilmRowMapper implements RowMapper<Film> {
             film.setMpa(mpa);
         }
 
-        // Загружаем жанры
         Set<Genre> genres = loadGenresForFilm(film.getId());
         film.setGenres(genres);
 
@@ -76,13 +74,18 @@ public class FilmRowMapper implements RowMapper<Film> {
     }
 
     private Set<Genre> loadGenresForFilm(Long filmId) {
-        if (filmId == null) {
-            return Set.of();
-        }
-        String sql = "SELECT g.* FROM genres g " +
+        if (filmId == null) return Set.of();
+
+        String sql = "SELECT g.id, g.name FROM genres g " +
                 "JOIN film_genres fg ON g.id = fg.genre_id " +
                 "WHERE fg.film_id = ?";
-        return new HashSet<>(jdbc.query(sql, genreRowMapper, filmId));
+
+        try {
+            List<Genre> genres = jdbc.query(sql, genreRowMapper, filmId);
+            return new HashSet<>(genres);
+        } catch (EmptyResultDataAccessException e) {
+            return Set.of();
+        }
     }
 
     private Mpa loadMpaForFilm(Long mpaId) {

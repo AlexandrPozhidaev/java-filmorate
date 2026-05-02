@@ -55,7 +55,10 @@ public class FilmRepository {
         Long generatedId = keyHolder.getKey().longValue();
         film.setId(generatedId);
 
-        // Сохраняем likes отдельно
+        updateFilmGenres(generatedId, film.getGenres().stream()
+                .map(Genre::getId)
+                .collect(Collectors.toSet()));
+
         updateFilmLikes(generatedId, film.getLikes());
 
         return film;
@@ -107,7 +110,7 @@ public class FilmRepository {
         String sql = "SELECT f.*, f.mpa_id AS mpa_id "
                 + "FROM films f "
                 + "ORDER BY f.id";
-        return jdbc.query(sql, filmRowMapper); // используем готовый mapper
+        return jdbc.query(sql, filmRowMapper);
     }
 
 
@@ -116,19 +119,7 @@ public class FilmRepository {
         return jdbc.queryForObject(sql, filmRowMapper, id);
     }
 
-    public Set<Genre> loadGenresForFilm(Long filmId) {
-        if (filmId == null) {
-            return Set.of();
-        }
-
-        String sql = "SELECT g.id, g.name FROM genres g " +
-                "JOIN film_genres fg ON g.id = fg.genre_id " +
-                "WHERE fg.film_id = ?";
-
-        return new HashSet<>(jdbc.query(sql, genreRowMapper, filmId));
-    }
-
-    private Set<Long> loadLikesForFilm(Long filmId) {
+        private Set<Long> loadLikesForFilm(Long filmId) {
         String sql = "SELECT user_id FROM likes WHERE film_id = ?";
         List<Long> likes = jdbc.queryForList(sql, Long.class, filmId);
         return new HashSet<>(likes);
@@ -194,15 +185,15 @@ public class FilmRepository {
                 }
             });
 
-            // Добавляем жанр, если он есть
             if (rs.getObject("genre_id") != null) {
                 Genre genre = new Genre();
                 genre.setId(rs.getLong("genre_id"));
                 genre.setName(rs.getString("genre_name"));
-                film.getGenres().add(genre);
+                if (!film.getGenres().contains(genre)) {
+                    film.getGenres().add(genre);
+                }
             }
 
-            // Добавляем лайк, если он есть
             if (rs.getObject("like_user_id") != null) {
                 film.getLikes().add(rs.getLong("like_user_id"));
             }
