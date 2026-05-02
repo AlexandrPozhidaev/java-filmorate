@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.dal;
 
 import jakarta.annotation.PostConstruct;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.Mpa;
@@ -17,21 +18,21 @@ public class MpaRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public List<Mpa> findAll() {
+    public List<Mpa> getAllMpa() {
         String sql = "SELECT id, name FROM mpa ORDER BY id";
         return jdbcTemplate.query(sql, (rs, rowNum) ->
                 new Mpa(rs.getLong("id"), rs.getString("name"))
         );
     }
 
-    public Optional<Mpa> findById(Long id) {
+    public Optional<Mpa> getMpaById(Long id) {
         String sql = "SELECT id, name FROM mpa WHERE id = ?";
         try {
             Mpa mpa = jdbcTemplate.queryForObject(sql,
                     (rs, rowNum) -> new Mpa(rs.getLong("id"), rs.getString("name")),
                     id);
             return Optional.ofNullable(mpa);
-        } catch (org.springframework.dao.EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
     }

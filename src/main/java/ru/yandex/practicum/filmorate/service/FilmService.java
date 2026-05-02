@@ -35,7 +35,7 @@ public class FilmService {
     public FilmDto create(FilmDto dto) throws ValidationException {
         validateFilmDto(dto);
 
-        Mpa mpa = mpaRepository.findById(dto.getMpa().getId())
+        Mpa mpa = mpaRepository.getMpaById(dto.getMpa().getId())
                 .orElseThrow(() -> new ValidationException(
                         "MPA с ID " + dto.getMpa().getId() + " не существует"));
 
@@ -44,7 +44,7 @@ public class FilmService {
                     .map(GenreDto::getId)
                     .collect(Collectors.toSet());
 
-            List<Genre> existingGenres = genreRepository.findAllById(genreIds);
+            List<Genre> existingGenres = genreRepository.getGenresByIds(genreIds);
             if (existingGenres.size() != genreIds.size()) {
                 throw new NotFoundException("Один или несколько жанров с ID " + genreIds + " не существуют");
             }
@@ -74,7 +74,7 @@ public class FilmService {
             throw new NotFoundException("Фильм с ID " + filmId + " не найден");
         }
 
-        Mpa mpa = mpaRepository.findById(dto.getMpa().getId())
+        Mpa mpa = mpaRepository.getMpaById(dto.getMpa().getId())
                 .orElseThrow(() -> new ValidationException(
                         "MPA с ID " + dto.getMpa().getId() + " не существует"));
 
@@ -82,7 +82,7 @@ public class FilmService {
             Set<Long> genreIds = dto.getGenres().stream()
                     .map(GenreDto::getId)
                     .collect(Collectors.toSet());
-            List<Genre> existingGenres = genreRepository.findAllById(genreIds);
+            List<Genre> existingGenres = genreRepository.getGenresByIds(genreIds);
             if (existingGenres.size() != genreIds.size()) {
                 throw new NotFoundException("Один или несколько жанров с ID " + genreIds + " не существуют");
             }
@@ -92,7 +92,7 @@ public class FilmService {
         return FilmMapper.mapToFilmDto(updatedFilm);
     }
 
-        public List<FilmDto> getAll() {
+    public List<FilmDto> getAll() {
         log.info("Получение всех фильмов");
         return filmRepository.getAll().stream()
                 .map(FilmMapper::mapToFilmDto)

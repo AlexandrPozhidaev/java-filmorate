@@ -116,10 +116,16 @@ public class FilmRepository {
         return jdbc.queryForObject(sql, filmRowMapper, id);
     }
 
-    private Set<Long> loadGenresForFilm(Long filmId) {
-        String sql = "SELECT genre_id FROM genres WHERE film_id = ?";
-        List<Long> genres = jdbc.queryForList(sql, Long.class, filmId);
-        return new HashSet<>(genres);
+    public Set<Genre> loadGenresForFilm(Long filmId) {
+        if (filmId == null) {
+            return Set.of();
+        }
+
+        String sql = "SELECT g.id, g.name FROM genres g " +
+                "JOIN film_genres fg ON g.id = fg.genre_id " +
+                "WHERE fg.film_id = ?";
+
+        return new HashSet<>(jdbc.query(sql, genreRowMapper, filmId));
     }
 
     private Set<Long> loadLikesForFilm(Long filmId) {
@@ -140,26 +146,26 @@ public class FilmRepository {
         jdbc.update(insertSql, filmId, userId);
     }
 
-        public void deleteLike(Long filmId, Long userId) {
-            String filmCheckSql = "SELECT COUNT(*) FROM films WHERE id = ?";
-            int filmCount = jdbc.queryForObject(filmCheckSql, Integer.class, filmId);
+    public void deleteLike(Long filmId, Long userId) {
+        String filmCheckSql = "SELECT COUNT(*) FROM films WHERE id = ?";
+        int filmCount = jdbc.queryForObject(filmCheckSql, Integer.class, filmId);
 
-            if (filmCount == 0) {
-                throw new NotFoundException("Фильм с ID " + filmId + " не найден");
-            }
-
-            String likeCheckSql = "SELECT COUNT(*) FROM likes WHERE film_id = ? AND user_id = ?";
-            int likeCount = jdbc.queryForObject(likeCheckSql, Integer.class, filmId, userId);
-
-            if (likeCount == 0) {
-                throw new NotFoundException(
-                        "Пользователь с ID " + userId + " не ставил лайк фильму с ID " + filmId
-                );
-            }
-
-            String deleteSql = "DELETE FROM likes WHERE film_id = ? AND user_id = ?";
-            jdbc.update(deleteSql, filmId, userId);
+        if (filmCount == 0) {
+            throw new NotFoundException("Фильм с ID " + filmId + " не найден");
         }
+
+        String likeCheckSql = "SELECT COUNT(*) FROM likes WHERE film_id = ? AND user_id = ?";
+        int likeCount = jdbc.queryForObject(likeCheckSql, Integer.class, filmId, userId);
+
+        if (likeCount == 0) {
+            throw new NotFoundException(
+                    "Пользователь с ID " + userId + " не ставил лайк фильму с ID " + filmId
+            );
+        }
+
+        String deleteSql = "DELETE FROM likes WHERE film_id = ? AND user_id = ?";
+        jdbc.update(deleteSql, filmId, userId);
+    }
 
 
     public List<Film> getPopularFilms(int count) {

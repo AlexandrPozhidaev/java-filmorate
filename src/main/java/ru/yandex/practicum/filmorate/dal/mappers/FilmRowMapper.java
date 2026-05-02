@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.dal.mappers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
@@ -62,27 +63,39 @@ public class FilmRowMapper implements RowMapper<Film> {
         // Загружаем MPA
         Long mpaId = resultSet.getLong("mpa_id");
         if (!resultSet.wasNull()) {
-            Mpa mpa = new Mpa();
-            mpa.setId(mpaId);
+            Mpa mpa = loadMpaForFilm(mpaId);
             film.setMpa(mpa);
         }
 
-        // Инициализируем пустые коллекции (данные загружаем отдельно)
-        film.setGenres(Set.of());
-        film.setLikes(Set.of());
+        // Загружаем жанры
+        Set<Genre> genres = loadGenresForFilm(film.getId());
+        film.setGenres(genres);
 
         log.debug("Завершили маппинг фильма ID={}", film.getId());
         return film;
     }
 
-    private List<Genre> loadGenresForFilm(Long filmId) {
+    private Set<Genre> loadGenresForFilm(Long filmId) {
         if (filmId == null) {
-            return List.of();
+            return Set.of();
         }
         String sql = "SELECT g.* FROM genres g " +
                 "JOIN film_genres fg ON g.id = fg.genre_id " +
                 "WHERE fg.film_id = ?";
-        return jdbc.query(sql, genreRowMapper, filmId);
+        return new HashSet<>(jdbc.query(sql, genreRowMapper, filmId));
+    }
+
+    private Mpa loadMpaForFilm(Long mpaId) {
+        if (mpaId == null) {
+            return null;
+        }
+        String sql = "SELECT id, name FROM mpa WHERE id = ?";
+        try {
+            return jdbc.queryForObject(sql, (rs, rowNum) ->
+                    new Mpa(rs.getLong("id"), rs.getString("name")), mpaId);
+        } catch (EmptyResultDataAccessException e) {
+            return null;
+        }
     }
 
     private Set<Long> loadLikesForFilm(Long filmId) {

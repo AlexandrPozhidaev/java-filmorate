@@ -41,4 +41,3 @@ public class FilmDto {
     @Builder.Default
     private Set<GenreDto> genres = new HashSet<>();
 }
-

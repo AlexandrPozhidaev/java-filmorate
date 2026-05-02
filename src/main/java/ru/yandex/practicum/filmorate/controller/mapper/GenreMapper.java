@@ -42,4 +42,3 @@ public class GenreMapper {
                 .collect(Collectors.toSet());
     }
 }
-

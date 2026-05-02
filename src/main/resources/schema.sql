@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Таблица рейтингов MPA (Movie Picture Association)
 CREATE TABLE IF NOT EXISTS mpa (
-    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+    id INT NOT NULL PRIMARY KEY,
     name VARCHAR(255)
 );
 
@@ -26,8 +26,8 @@ CREATE TABLE IF NOT EXISTS films (
 
 -- Таблица жанров
 CREATE TABLE IF NOT EXISTS genres (
-    id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(255)
+    id INT NOT NULL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
 );
 
 -- Связующая таблица для связи фильмов и жанров (многие‑ко‑многим)

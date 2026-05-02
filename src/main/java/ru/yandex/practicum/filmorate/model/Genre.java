@@ -12,5 +12,4 @@ public class Genre {
     @NotNull(message = "ID жанра обязателен")
     private Long id;
     private String name;
-
 }
