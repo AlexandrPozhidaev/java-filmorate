@@ -3,7 +3,6 @@ package ru.yandex.practicum.filmorate.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.controller.mapper.FilmMapper;
@@ -21,7 +20,6 @@ import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -141,16 +139,7 @@ public class FilmService {
     }
 
     private Set<Genre> loadGenresForFilm(Long filmId) {
-        String sql = "SELECT g.id, g.name FROM genres g " +
-                "JOIN film_genres fg ON g.id = fg.genre_id " +
-                "WHERE fg.film_id = ?";
-        try {
-            List<Genre> genres = jdbc.query(sql, genreRowMapper, filmId);
-            log.debug("Загружено {} жанров для фильма ID={}", genres.size(), filmId);
-            return new HashSet<>(genres);
-        } catch (EmptyResultDataAccessException e) {
-            log.warn("Для фильма ID={} не найдено жанров", filmId);
-            return Set.of();
-        }
+        log.info("Загрузка жанров для фильма ID {} ", filmId);
+        return filmRepository.loadGenresForFilm(filmId);
     }
 }

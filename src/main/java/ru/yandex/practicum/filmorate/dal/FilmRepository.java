@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.dal;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
@@ -24,6 +25,7 @@ public class FilmRepository {
     private final JdbcTemplate jdbc;
     private final FilmRowMapper filmRowMapper;
     private final GenreRowMapper genreRowMapper;
+
 
     @Autowired
     public FilmRepository(JdbcTemplate jdbc, FilmRowMapper filmRowMapper, GenreRowMapper genreRowMapper) {
@@ -113,7 +115,6 @@ public class FilmRepository {
         return jdbc.query(sql, filmRowMapper);
     }
 
-
     public Film getById(Long id) {
         String sql = "SELECT f.*, f.mpa_id as mpa_id FROM films f WHERE f.id = ?";
         return jdbc.queryForObject(sql, filmRowMapper, id);
@@ -158,7 +159,6 @@ public class FilmRepository {
         jdbc.update(deleteSql, filmId, userId);
     }
 
-
     public List<Film> getPopularFilms(int count) {
         String sql = """
             SELECT f.*, g.id as genre_id, g.name as genre_name,
@@ -202,5 +202,17 @@ public class FilmRepository {
         }, count);
 
         return new ArrayList<>(filmMap.values());
+    }
+
+    public Set<Genre> loadGenresForFilm(Long filmId) {
+        String sql = "SELECT g.id, g.name FROM genres g " +
+                "JOIN film_genres fg ON g.id = fg.genre_id " +
+                "WHERE fg.film_id = ?";
+        try {
+            List<Genre> genres = jdbc.query(sql, genreRowMapper, filmId);
+            return new HashSet<>(genres);
+        } catch (EmptyResultDataAccessException e) {
+            return Set.of();
+        }
     }
 }

@@ -1,11 +1,9 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.controller.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.dal.UserRepository;
-import ru.yandex.practicum.filmorate.dal.mappers.UserRowMapper;
 import ru.yandex.practicum.filmorate.dto.UserDto;
 import ru.yandex.practicum.filmorate.exceptions.UserNotFoundException;
 import ru.yandex.practicum.filmorate.exceptions.ValidationException;
@@ -20,13 +18,9 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final JdbcTemplate jdbcTemplate;
-    private final UserRowMapper userRowMapper;
 
-    public UserService(UserRepository userRepository, JdbcTemplate jdbcTemplate, UserRowMapper userRowMapper) {
+    public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.jdbcTemplate = jdbcTemplate;
-        this.userRowMapper = userRowMapper;
     }
 
     public UserDto create(UserDto dto) {
