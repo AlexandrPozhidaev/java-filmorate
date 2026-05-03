@@ -4,10 +4,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.coyote.BadRequestException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.controller.service.FilmService;
-import ru.yandex.practicum.filmorate.model.request.FilmRequest;
-import ru.yandex.practicum.filmorate.model.response.FilmResponse;
+import ru.yandex.practicum.filmorate.dto.FilmDto;
+import ru.yandex.practicum.filmorate.exceptions.ErrorResponse;
+import ru.yandex.practicum.filmorate.exceptions.ValidationException;
+import ru.yandex.practicum.filmorate.service.FilmService;
 
 import java.util.List;
 
@@ -20,25 +23,38 @@ public class FilmController {
     private final FilmService service;
 
     @PostMapping
-    public FilmResponse create(@Valid @RequestBody FilmRequest filmRequest) {
-        log.info("Начато создание фильма {}", filmRequest);
-        return service.create(filmRequest);
+    public ResponseEntity<?> create(@RequestBody @Valid FilmDto dto) {
+        try {
+            FilmDto created = service.create(dto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        } catch (ValidationException ex) {
+            if (ex.getMessage().contains("MPA с ID") && ex.getMessage().contains("не существует")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse(ex.getMessage(), 404));
+            }
+            throw ex;
+        }
     }
 
     @PutMapping
-    public FilmResponse update(@Valid @RequestBody FilmRequest filmRequest) {
-        log.info("Начато обновление фильма {}", filmRequest);
-        return service.update(filmRequest);
+    public ResponseEntity<FilmDto> updateFilm(@RequestBody @Valid FilmDto dto) throws BadRequestException {
+        if (dto.getId() == null) {
+            throw new BadRequestException("ID фильма обязателен для обновления");
+        }
+
+        FilmDto updatedFilm = service.update(dto);
+        return ResponseEntity.ok(updatedFilm);
     }
 
     @GetMapping
-    public List<FilmResponse> getAll() {
+    public ResponseEntity<List<FilmDto>> getAll() {
         log.info("Запрошен вывод всех фильмов");
-        return service.getAll();
+        List<FilmDto> films = service.getAll();
+        return ResponseEntity.status(HttpStatus.OK).body(films);
     }
 
     @GetMapping("/{id}")
-    public FilmResponse getById(@PathVariable Long id) {
+    public FilmDto getById(@PathVariable Long id) {
         log.info("Запрошены данные фильма с ID {}", id);
         return service.getById(id);
     }
@@ -56,7 +72,7 @@ public class FilmController {
     }
 
     @GetMapping("/popular")
-    public List<FilmResponse> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
+    public List<FilmDto> getPopularFilms(@RequestParam(defaultValue = "10") int count) {
         log.info("Запрошен список из {} популярных фильмов", count);
         if (count <= 0) {
             throw new IllegalArgumentException("Количество фильмов должно быть положительным");

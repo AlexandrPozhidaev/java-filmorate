@@ -1,23 +1,19 @@
-package ru.yandex.practicum.filmorate.model.request;
+package ru.yandex.practicum.filmorate.dto;
 
 import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.Value;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
-@Value
 @Data
-@Builder
-@AllArgsConstructor
-public class UserRequest {
+public class UserDto {
 
     private Long id;
+
+    private String name;
 
     @NotBlank(message = "Электронная почта не может быть пустой", groups = User.OnCreate.class)
     @Email(message = "Некорректный формат электронной почты", groups = {User.OnCreate.class, User.OnUpdate.class})
@@ -27,11 +23,9 @@ public class UserRequest {
     @Pattern(regexp = "^\\S*$", message = "Логин не должен содержать пробелы", groups = {User.OnCreate.class, User.OnUpdate.class})
     private String login;
 
-    private String name;
-
     @NotNull
     @Past(message = "Дата рождения не может быть в будущем", groups = {User.OnCreate.class, User.OnUpdate.class})
     private LocalDate birthday;
 
-    private Set<Long> friends = new HashSet<>();
+    private Set<Long> friendIds = new HashSet<>();
 }
